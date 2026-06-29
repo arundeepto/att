@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Absent Attendance Report NpMC 8th</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <style>
+        :root { --primary: #3498db; --success: #27ae60; --danger: #e74c3c; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; margin: 0; padding: 20px; padding-bottom: 120px; }
+        .container { max-width: 450px; margin: auto; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .batch-name { text-align: center; font-size: 20px; font-weight: bold; color: #2c3e50; }
+        .info-card { text-align: center; background: #f8f9fa; padding: 20px; border-radius: 15px; border: 1px solid #e9ecef; margin-top: 20px; }
+        #name-display { font-size: 26px; font-weight: 800; color: #2c3e50; margin: 10px 0; min-height: 60px; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; color: #333; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+
+        .fixed-footer { position: fixed; bottom: 0; left: 0; width: 100%; background: white; padding: 15px; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); display: flex; gap: 15px; justify-content: center; }
+        .btn-big { flex: 1; max-width: 150px; padding: 15px; border: none; border-radius: 15px; cursor: pointer; color: white; font-weight: bold; font-size: 16px; }
+        .present { background: var(--success); }
+        .absent { background: var(--danger); }
+        
+        .action-btn { background: #3498db; color: white; width: 100%; padding: 12px; border: none; border-radius: 8px; cursor: pointer; margin-top: 10px; font-weight: bold; }
+        #summary-box { display: none; padding: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container" id="main-ui">
+    <div class="batch-name">অরুণদীপ্ত Attendance System</div>
+    <div class="progress-container"><div id="progress-bar" style="height:8px; background:var(--primary); width:0%"></div></div>
+    
+    <div class="info-card">
+        <div id="roll-display">Roll: 1</div>
+        <div id="name-display">...</div>
+        <div id="phone-display">📞 ---</div>
+    </div>
+    
+    <button class="action-btn" style="background:#7f8c8d;" onclick="undo()">⬅ Undo Previous</button>
+</div>
+
+<div class="fixed-footer" id="action-buttons">
+    <button class="btn-big absent" onclick="mark('Absent')">ABSENT</button>
+    <button class="btn-big present" onclick="mark('Present')">PRESENT</button>
+</div>
+
+<div class="container" id="summary-box">
+    <div id="capture-area" style="background: white; padding: 10px;">
+        <h3>Absent List</h3>
+        <p id="date-display"></p>
+        <div id="table-container"></div>
+    </div>
+    <button class="action-btn" style="background: #27ae60;" onclick="downloadPNG()">📸 Download as PNG</button>
+    <button class="action-btn" style="background:#2c3e50;" onclick="location.reload()">Start New Session</button>
+</div>
+
+<script>
+    // ... (তোমার আগের স্টুডেন্ট লিস্টটি এখানে আগের মতোই থাকবে) ...
+    const students = [
+        { "roll": "1", "name": "MD. KAWSER AZAM", "mobile_number": "01839580475" },
+        { "roll": "2", "name": "S. B. ANURADHA", "mobile_number": "01756240091" },
+        { "roll": "3", "name": "REHNUMA ISLAM", "mobile_number": "01912597315" },
+        { "roll": "4", "name": "MD. ABDUR RAHIM", "mobile_number": "01787486590" },
+        { "roll": "5", "name": "TAHMID UR RAHMAN", "mobile_number": "01871592902" },
+        { "roll": "6", "name": "JANNATUN NAHAR", "mobile_number": "01759889147" },
+        { "roll": "7", "name": "MD. SHOAIB AKHTAR", "mobile_number": "01607301633" },
+        { "roll": "8", "name": "ZUYANA ALIF", "mobile_number": "01832991413" },
+        { "roll": "9", "name": "MD. AL SERAFIC ZIHAD", "mobile_number": "01914351523" },
+        { "roll": "10", "name": "MOST. HAMZA IFFAT NUBAH", "mobile_number": "01752931292" },
+        { "roll": "11", "name": "ROJA ASKARI", "mobile_number": "01572906860" },
+        { "roll": "12", "name": "MST. SIRAJAM MUNIRA", "mobile_number": "01338778107" },
+        { "roll": "13", "name": "RAFID HASAN SIDDIQUI", "mobile_number": "01919280048" },
+        { "roll": "14", "name": "MST. NUSRAT JAHAN NADIA", "mobile_number": "01728340129" },
+        { "roll": "15", "name": "MD. ABDUR ROUF", "mobile_number": "01312807057" },
+        { "roll": "16", "name": "SHAH MD. JUHAYER JARIF", "mobile_number": "01310074686" },
+        { "roll": "17", "name": "SAFA MARIYA WORPA", "mobile_number": "01327008728" },
+        { "roll": "18", "name": "AFIYA MUBASHIRA MAYESHA", "mobile_number": "01848382280" },
+        { "roll": "19", "name": "SIDRATUL MUNTAHA MAHI", "mobile_number": "01753475617" },
+        { "roll": "20", "name": "FAHIM ASHFAK ALIN", "mobile_number": "01748244891" },
+        { "roll": "21", "name": "MD. MAHMUD ALAM", "mobile_number": "01719130143" },
+        { "roll": "22", "name": "MD. ABDULLAH AL RAFI", "mobile_number": "01759526714" },
+        { "roll": "23", "name": "S. M. TAMZID HOSSAIN PRODHAN", "mobile_number": "01327721806" },
+        { "roll": "24", "name": "MAIDA ALAMGIR", "mobile_number": "01821961920" },
+        { "roll": "25", "name": "TURE SINA FAIZA MOMO", "mobile_number": "0199786687" },
+        { "roll": "26", "name": "MST. TONU", "mobile_number": "01952919477" },
+        { "roll": "27", "name": "MST. TASNIA RASHID LISHA", "mobile_number": "01882851120" },
+        { "roll": "28", "name": "MD. NAFIZ AHMMED", "mobile_number": "01331449595" },
+        { "roll": "29", "name": "MD. SAZZAD AHAMED", "mobile_number": "01943426969" },
+        { "roll": "30", "name": "SAMIYA JANNAT", "mobile_number": "01908388253" },
+        { "roll": "31", "name": "MST. JANNATUL SAHIMA HAQUE", "mobile_number": "01755476949" },
+        { "roll": "32", "name": "NAYEEMA SALEHA", "mobile_number": "01570256654" },
+        { "roll": "33", "name": "MD. ALIFUL ISLAM ALIF", "mobile_number": "01719618902" },
+        { "roll": "34", "name": "NAZIA ISMAIL REETU", "mobile_number": "01616251747" },
+        { "roll": "35", "name": "MST. AKHI", "mobile_number": "01944954201" },
+        { "roll": "36", "name": "MST. SINTHIYA AKTHER", "mobile_number": "01641851228" },
+        { "roll": "37", "name": "MST. RAISHA ANJUM", "mobile_number": "01332016411" },
+        { "roll": "38", "name": "FERDOUS HASAN FAHIM", "mobile_number": "01570284699" },
+        { "roll": "39", "name": "ZANNATUL MAWA KHAN", "mobile_number": "01742413643" },
+        { "roll": "40", "name": "TAIN NUR OMI", "mobile_number": "01610421834" },
+        { "roll": "41", "name": "MD. RAFIUR ISLAM", "mobile_number": "01824127974" },
+        { "roll": "42", "name": "MOST. AME KHATUN", "mobile_number": "01301218710" },
+        { "roll": "43", "name": "MST. MOHONA RAHMAN", "mobile_number": "01864622111" },
+        { "roll": "44", "name": "TANIA AKTER", "mobile_number": "01752656009" },
+        { "roll": "45", "name": "SUMAIYA AFRIN FAIZA", "mobile_number": "01757750547" },
+        { "roll": "46", "name": "KAZI KHADIJA ANAM", "mobile_number": "01341826882" },
+        { "roll": "47", "name": "MD. MIZANUR RAHMAN", "mobile_number": "01522102870" },
+        { "roll": "48", "name": "ADITYA CHAKMA", "mobile_number": "01318048630" },
+        { "roll": "49", "name": "GALIB MAHMUD", "mobile_number": "01556648330" },
+        { "roll": "50", "name": "TASNIM RAHI", "mobile_number": "01918057236" },
+        { "roll": "51", "name": "SHEMONTY ISLAM SUSHOMA", "mobile_number": "01880321964" },
+        { "roll": "52", "name": "NAZMUN NAHAR", "mobile_number": "01581185111" },
+        { "roll": "53", "name": "TASNIM ARA SHREYOSEE", "mobile_number": "01305791264" },
+        { "roll": "54", "name": "MD. ABDUR ROKIB AHMED RAK", "mobile_number": "01723683819" },
+        { "roll": "55", "name": "M. A. MOSTAKIM", "mobile_number": "01706709522" },
+        { "roll": "56", "name": "AYSA KHATUN", "mobile_number": "01757784031" },
+        { "roll": "57", "name": "SUPARNA DAS", "mobile_number": "01898915485" },
+        { "roll": "58", "name": "MIDULA MAHJABIN", "mobile_number": "01931176128" },
+        { "roll": "59", "name": "MD. HEMAYETULLAH HIMU", "mobile_number": "01522127925" },
+        { "roll": "60", "name": "MD. S. M. RIFAT SHAH", "mobile_number": "01765962492" },
+        { "roll": "61", "name": "TANJEHE NAWRATI ROWZA", "mobile_number": "01717014846" },
+        { "roll": "62", "name": "UMME SALMA", "mobile_number": "01511245678" },
+        { "roll": "63", "name": "MAISHA KASHFIA ZAMAN", "mobile_number": "01796125690" },
+        { "roll": "64", "name": "SHAOMA SIDDIK AKHI", "mobile_number": "01778914733" },
+        { "roll": "65", "name": "SANCHITA ROY DIYA", "mobile_number": "01740826096" },
+        { "roll": "66", "name": "SHAH MUNAF WASIF SIDDIQUE ANANDO", "mobile_number": "01572917840" },
+        { "roll": "67", "name": "MORSALINA NUPUR", "mobile_number": "01722742405" },
+        { "roll": "68", "name": "AYESHA SHIDDIKA", "mobile_number": "01304613778" },
+        { "roll": "69", "name": "TASNIM JAHAN MARIA", "mobile_number": "01605697658" },
+        { "roll": "70", "name": "KABBO PROSAD GUPTA", "mobile_number": "01708001221" },
+        { "roll": "71", "name": "MD. MUNTASIR MAHMUD MUHIT", "mobile_number": "01531721090" },
+        { "roll": "72", "name": "TASNIM TABASSUM TISHA", "mobile_number": "01759909406" },
+        { "roll": "73", "name": "MD. TANJIMUL ISLAM", "mobile_number": "01944585676" },
+        { "roll": "74", "name": "TOFAYEL AHMED MARUF", "mobile_number": "" },
+        { "roll": "75", "name": "SINTHIYA ISLAM SIMI", "mobile_number": "" }
+    ];
+
+    let currentIndex = 0;
+    let attendance = {};
+
+    function mark(status) {
+        if (currentIndex < students.length) {
+            attendance[students[currentIndex].roll] = status;
+            currentIndex++;
+            updateUI();
+        }
+    }
+
+    function undo() {
+        if (currentIndex > 0) {
+            currentIndex--;
+            delete attendance[students[currentIndex].roll];
+            updateUI();
+        }
+    }
+
+    function updateUI() {
+        if (currentIndex >= students.length) {
+            showSummary();
+        } else {
+            let s = students[currentIndex];
+            document.getElementById('roll-display').innerText = "Roll: " + s.roll;
+            document.getElementById('name-display').innerText = s.name;
+            document.getElementById('phone-display').innerText = s.mobile_number ? "📞 " + s.mobile_number : "📞 ---";
+            document.getElementById('progress-bar').style.width = (currentIndex / students.length) * 100 + "%";
+            document.getElementById('main-ui').style.display = 'block';
+            document.getElementById('action-buttons').style.display = 'flex';
+            document.getElementById('summary-box').style.display = 'none';
+        }
+    }
+
+    function showSummary() {
+        document.getElementById('main-ui').style.display = 'none';
+        document.getElementById('action-buttons').style.display = 'none';
+        document.getElementById('summary-box').style.display = 'block';
+        
+        const date = new Date().toLocaleDateString();
+        document.getElementById('date-display').innerText = "Date: " + date;
+        
+        let html = `<table><tr><th>Roll</th><th>Name</th><th>Mobile</th></tr>`;
+        students.forEach(s => {
+            if(attendance[s.roll] === 'Absent') {
+                html += `<tr><td>${s.roll}</td><td>${s.name}</td><td>${s.mobile_number}</td></tr>`;
+            }
+        });
+        html += `</table>`;
+        document.getElementById('table-container').innerHTML = html;
+    }
+
+    function downloadPNG() {
+        const element = document.getElementById("capture-area");
+        html2canvas(element).then(canvas => {
+            const link = document.createElement("a");
+            link.download = "Absent_List_" + new Date().toLocaleDateString().replace(/\//g, '-') + ".png";
+            link.href = canvas.toDataURL("image/png");
+            link.click();
+        });
+    }
+
+    updateUI();
+</script>
+</body>
+</html>
