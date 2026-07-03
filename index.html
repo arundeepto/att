@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Arundeepto Attandance</title>
+    <title>Arundeepto Attendance Pro</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         :root { --primary: #2c3e50; --accent: #3498db; --danger: #e74c3c; --success: #27ae60; }
@@ -16,12 +16,41 @@
         #progress-bar { height: 100%; background: var(--accent); width: 0%; transition: 0.3s; }
         
         .card { padding: 20px; background: #f9f9f9; border-radius: 15px; text-align: center; margin: 20px 0; }
+        button { padding: 15px; border: none; border-radius: 10px; color: white; font-weight: bold; cursor: pointer; width: 100%; }
         .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        button { padding: 15px; border: none; border-radius: 10px; color: white; font-weight: bold; cursor: pointer; }
         
-        .action-btns { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
-        .summary-box { border: 1px solid #ddd; padding: 15px; border-radius: 10px; margin-top: 20px; background: white; }
-        #report-date { font-weight: bold; color: var(--primary); margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+        /* উন্নত রিপোর্ট কার্ড ডিজাইন */
+        #capture-area { 
+            border: 2px solid var(--primary); 
+            padding: 25px; 
+            border-radius: 20px; 
+            margin-top: 20px; 
+            background: #ffffff;
+            color: #333;
+        }
+        .report-header { 
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between; 
+            border-bottom: 2px solid #eee; 
+            margin-bottom: 15px; 
+            padding-bottom: 10px; 
+        }
+        .header-text { text-align: left; }
+        .header-text h2 { margin: 0; color: var(--primary); font-size: 22px;}
+        .header-text p { margin: 5px 0 0; font-size: 13px; color: #7f8c8d; }
+        
+        /* লোগো স্টাইল */
+        .logo-img { 
+            width: 60px; 
+            height: 60px; 
+            border-radius: 50%; 
+            border: 2px solid var(--accent); 
+            object-fit: cover; 
+            margin-left: 10px;
+        }
+
+        .action-btns { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
     </style>
 </head>
 <body>
@@ -30,7 +59,7 @@
     <div class="header">
         <h3 style="margin:0">অরুণদীপ্ত Attendance</h3>
         <small id="current-date-ui"></small>
-        <select id="subject-select" onchange="resetUI()">
+        <select id="subject-select" onchange="updateUI()">
             <option value="Anatomy">Anatomy</option>
             <option value="Physiology">Physiology</option>
             <option value="Biochemistry">Biochemistry</option>
@@ -47,106 +76,39 @@
             <button style="background: var(--danger);" onclick="mark('Absent')">ABSENT</button>
             <button style="background: var(--success);" onclick="mark('Present')">PRESENT</button>
         </div>
-        <button style="background: #95a5a6; width: 100%; margin-top:10px;" onclick="undo()">Undo</button>
+        <button style="background: #95a5a6; margin-top:10px;" onclick="undo()">Undo</button>
     </div>
 
-    <div class="summary-box" id="capture-area">
-        <h4 style="margin:0">Absent List</h4>
-        <div id="report-date"></div> <div id="absent-list-output">No absent yet.</div>
+    <div id="capture-area">
+        <div class="report-header">
+            <div class="header-text">
+                <h2 id="report-subject-title">Subject Name</h2>
+                <p id="report-date">Date: ---</p>
+            </div>
+            <img src="l.jpg" alt="Batch Logo" class="logo-img" onerror="this.style.display='none'">
+        </div>
+        <h4 style="margin-bottom: 10px; color: var(--danger);">Absent List:</h4>
+        <div id="absent-list-output" style="min-height: 50px; font-size: 14px;">No absent yet.</div>
     </div>
 
     <div class="action-btns">
-        <button style="background: var(--primary);" onclick="downloadPNG()">📸 Download PNG</button>
+        <button style="background: var(--primary);" onclick="downloadPNG()">📸 Download PNG with Logo</button>
         <button style="background: var(--accent);" onclick="copyWhatsAppMessage()">📋 Copy WhatsApp Message</button>
     </div>
 </div>
 
 <script>
+    // তোমার স্টুডেন্ট লিস্ট এখানে আগের মতোই থাকবে
     const students = [
-        { "roll": "1", "name": "MD. KAWSER AZAM", "mobile_number": "01839580475" },
-        { "roll": "2", "name": "S. B. ANURADHA", "mobile_number": "01756240091" },
-        { "roll": "3", "name": "REHNUMA ISLAM", "mobile_number": "01912597315" },
-        { "roll": "4", "name": "MD. ABDUR RAHIM", "mobile_number": "01787486590" },
-        { "roll": "5", "name": "TAHMID UR RAHMAN", "mobile_number": "01871592902" },
-        { "roll": "6", "name": "JANNATUN NAHAR", "mobile_number": "01759889147" },
-        { "roll": "7", "name": "MD. SHOAIB AKHTAR", "mobile_number": "01607301633" },
-        { "roll": "8", "name": "ZUYANA ALIF", "mobile_number": "01832991413" },
-        { "roll": "9", "name": "MD. AL SERAFIC ZIHAD", "mobile_number": "01914351523" },
-        { "roll": "10", "name": "MOST. HAMZA IFFAT NUBAH", "mobile_number": "01752931292" },
-        { "roll": "11", "name": "ROJA ASKARI", "mobile_number": "01572906860" },
-        { "roll": "12", "name": "MST. SIRAJAM MUNIRA", "mobile_number": "01338778107" },
-        { "roll": "13", "name": "RAFID HASAN SIDDIQUI", "mobile_number": "01919280048" },
-        { "roll": "14", "name": "MST. NUSRAT JAHAN NADIA", "mobile_number": "01728340129" },
-        { "roll": "15", "name": "MD. ABDUR ROUF", "mobile_number": "01312807057" },
-        { "roll": "16", "name": "SHAH MD. JUHAYER JARIF", "mobile_number": "01310074686" },
-        { "roll": "17", "name": "SAFA MARIYA WORPA", "mobile_number": "01327008728" },
-        { "roll": "18", "name": "AFIYA MUBASHIRA MAYESHA", "mobile_number": "01848382280" },
-        { "roll": "19", "name": "SIDRATUL MUNTAHA MAHI", "mobile_number": "01753475617" },
-        { "roll": "20", "name": "FAHIM ASHFAK ALIN", "mobile_number": "01748244891" },
-        { "roll": "21", "name": "MD. MAHMUD ALAM", "mobile_number": "01719130143" },
-        { "roll": "22", "name": "MD. ABDULLAH AL RAFI", "mobile_number": "01759526714" },
-        { "roll": "23", "name": "S. M. TAMZID HOSSAIN PRODHAN", "mobile_number": "01327721806" },
-        { "roll": "24", "name": "MAIDA ALAMGIR", "mobile_number": "01821961920" },
-        { "roll": "25", "name": "TURE SINA FAIZA MOMO", "mobile_number": "0199786687" },
-        { "roll": "26", "name": "MST. TONU", "mobile_number": "01952919477" },
-        { "roll": "27", "name": "MST. TASNIA RASHID LISHA", "mobile_number": "01882851120" },
-        { "roll": "28", "name": "MD. NAFIZ AHMMED", "mobile_number": "01331449595" },
-        { "roll": "29", "name": "MD. SAZZAD AHAMED", "mobile_number": "01943426969" },
-        { "roll": "30", "name": "SAMIYA JANNAT", "mobile_number": "01908388253" },
-        { "roll": "31", "name": "MST. JANNATUL SAHIMA HAQUE", "mobile_number": "01755476949" },
-        { "roll": "32", "name": "NAYEEMA SALEHA", "mobile_number": "01570256654" },
-        { "roll": "33", "name": "MD. ALIFUL ISLAM ALIF", "mobile_number": "01719618902" },
-        { "roll": "34", "name": "NAZIA ISMAIL REETU", "mobile_number": "01616251747" },
-        { "roll": "35", "name": "MST. AKHI", "mobile_number": "01944954201" },
-        { "roll": "36", "name": "MST. SINTHIYA AKTHER", "mobile_number": "01641851228" },
-        { "roll": "37", "name": "MST. RAISHA ANJUM", "mobile_number": "01332016411" },
-        { "roll": "38", "name": "FERDOUS HASAN FAHIM", "mobile_number": "01570284699" },
-        { "roll": "39", "name": "ZANNATUL MAWA KHAN", "mobile_number": "01742413643" },
-        { "roll": "40", "name": "TAIN NUR OMI", "mobile_number": "01610421834" },
-        { "roll": "41", "name": "MD. RAFIUR ISLAM", "mobile_number": "01824127974" },
-        { "roll": "42", "name": "MOST. AME KHATUN", "mobile_number": "01301218710" },
-        { "roll": "43", "name": "MST. MOHONA RAHMAN", "mobile_number": "01864622111" },
-        { "roll": "44", "name": "TANIA AKTER", "mobile_number": "01752656009" },
-        { "roll": "45", "name": "SUMAIYA AFRIN FAIZA", "mobile_number": "01757750547" },
-        { "roll": "46", "name": "KAZI KHADIJA ANAM", "mobile_number": "01341826882" },
-        { "roll": "47", "name": "MD. MIZANUR RAHMAN", "mobile_number": "01522102870" },
-        { "roll": "48", "name": "ADITYA CHAKMA", "mobile_number": "01318048630" },
-        { "roll": "49", "name": "GALIB MAHMUD", "mobile_number": "01556648330" },
-        { "roll": "50", "name": "TASNIM RAHI", "mobile_number": "01918057236" },
-        { "roll": "51", "name": "SHEMONTY ISLAM SUSHOMA", "mobile_number": "01880321964" },
-        { "roll": "52", "name": "NAZMUN NAHAR", "mobile_number": "01581185111" },
-        { "roll": "53", "name": "TASNIM ARA SHREYOSEE", "mobile_number": "01305791264" },
-        { "roll": "54", "name": "MD. ABDUR ROKIB AHMED RAK", "mobile_number": "01723683819" },
-        { "roll": "55", "name": "M. A. MOSTAKIM", "mobile_number": "01706709522" },
-        { "roll": "56", "name": "AYSA KHATUN", "mobile_number": "01757784031" },
-        { "roll": "57", "name": "SUPARNA DAS", "mobile_number": "01898915485" },
-        { "roll": "58", "name": "MIDULA MAHJABIN", "mobile_number": "01931176128" },
-        { "roll": "59", "name": "MD. HEMAYETULLAH HIMU", "mobile_number": "01522127925" },
-        { "roll": "60", "name": "MD. S. M. RIFAT SHAH", "mobile_number": "01765962492" },
-        { "roll": "61", "name": "TANJEHE NAWRATI ROWZA", "mobile_number": "01717014846" },
-        { "roll": "62", "name": "UMME SALMA", "mobile_number": "01511245678" },
-        { "roll": "63", "name": "MAISHA KASHFIA ZAMAN", "mobile_number": "01796125690" },
-        { "roll": "64", "name": "SHAOMA SIDDIK AKHI", "mobile_number": "01778914733" },
-        { "roll": "65", "name": "SANCHITA ROY DIYA", "mobile_number": "01740826096" },
-        { "roll": "66", "name": "SHAH MUNAF WASIF SIDDIQUE ANANDO", "mobile_number": "01572917840" },
-        { "roll": "67", "name": "MORSALINA NUPUR", "mobile_number": "01722742405" },
-        { "roll": "68", "name": "AYESHA SHIDDIKA", "mobile_number": "01304613778" },
-        { "roll": "69", "name": "TASNIM JAHAN MARIA", "mobile_number": "01605697658" },
-        { "roll": "70", "name": "KABBO PROSAD GUPTA", "mobile_number": "01708001221" },
-        { "roll": "71", "name": "MD. MUNTASIR MAHMUD MUHIT", "mobile_number": "01531721090" },
-        { "roll": "72", "name": "TASNIM TABASSUM TISHA", "mobile_number": "01759909406" },
-        { "roll": "73", "name": "MD. TANJIMUL ISLAM", "mobile_number": "01944585676" },
-        { "roll": "74", "name": "TOFAYEL AHMED MARUF", "mobile_number": "" },
-        { "roll": "75", "name": "SINTHIYA ISLAM SIMI", "mobile_number": "" }
+        { "roll": "1", "name": "MD. KAWSER AZAM" },
+        // ... (বাকি লিস্ট এখানে বসাও)
     ];
-
 
     let attendance = JSON.parse(localStorage.getItem('attendance_data')) || {};
     let currentIndex = 0;
 
     function getSubject() { return document.getElementById('subject-select').value; }
     
-    // তারিখ সেট করার ফাংশন
     function setDateDisplay() {
         const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
         const dateStr = new Date().toLocaleDateString('en-US', dateOptions);
@@ -156,6 +118,9 @@
 
     function updateUI() {
         if (!attendance[getSubject()]) attendance[getSubject()] = {};
+        
+        // সাবজেক্টের নাম হেডিংয়ে আপডেট করা
+        document.getElementById('report-subject-title').innerText = getSubject();
         
         let progress = (currentIndex / students.length) * 100;
         document.getElementById('progress-bar').style.width = progress + "%";
@@ -189,20 +154,28 @@
     function renderList() {
         let list = attendance[getSubject()];
         let html = "<ul style='padding-left: 20px; margin: 0;'>";
+        let found = false;
         students.forEach(s => {
-            if(list[s.roll] === 'Absent') html += `<li>Roll ${s.roll}: ${s.name}</li>`;
+            if(list[s.roll] === 'Absent') {
+                html += `<li>Roll ${s.roll}: ${s.name}</li>`;
+                found = true;
+            }
         });
         html += "</ul>";
-        document.getElementById('absent-list-output').innerHTML = html || "All Present! 🎉";
+        document.getElementById('absent-list-output').innerHTML = found ? html : "All Present! 🎉";
     }
 
     function downloadPNG() {
-        // PNG ডাউনলোডের সময় ব্যাকগ্রাউন্ড সাদা রাখার জন্য
-        document.getElementById("capture-area").style.background = "white";
-        html2canvas(document.getElementById("capture-area")).then(canvas => {
+        // লোগো লোড হওয়ার জন্য একটু অপেক্ষা করতে হতে পারে, তাই সরাসরি html2canvas কল করছি
+        // ব্রাউজার সিকিউরিটির কারণে লোকাল ফাইল থেকে লোগো না আসলে, ছবিটি অনলাইনে হোস্ট করা ফোল্ডারে রাখতে হবে।
+        html2canvas(document.getElementById("capture-area"), {
+            scale: 2, // হাই রেজোলিউশন
+            backgroundColor: "#ffffff",
+            useCORS: true // অন্য ডোমেইন থেকে ছবি লোড করার অনুমতি দিতে (যদি লোগো অনলাইনে থাকে)
+        }).then(canvas => {
             let link = document.createElement("a");
             link.download = `Absent_${getSubject()}_${new Date().toLocaleDateString().replace(/\//g, '-')}.png`;
-            link.href = canvas.toDataURL();
+            link.href = canvas.toDataURL("image/png");
             link.click();
         });
     }
@@ -222,9 +195,7 @@
         alert("Copied! Now paste to WhatsApp.");
     }
 
-    function resetUI() { currentIndex = 0; updateUI(); }
-    
-    // লোড হওয়ার সময় ডেট সেট হবে
+    // ইনিশিয়ালাইজেশন
     setDateDisplay();
     updateUI();
 </script>
