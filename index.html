@@ -3,62 +3,65 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Absent Attendance Report NpMC 8th</title>
+    <title>Arundeepto Attandance</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    
     <style>
-        :root { --primary: #3498db; --success: #27ae60; --danger: #e74c3c; }
-        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; margin: 0; padding: 20px; padding-bottom: 120px; }
-        .container { max-width: 450px; margin: auto; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
-        .batch-name { text-align: center; font-size: 20px; font-weight: bold; color: #2c3e50; }
-        .info-card { text-align: center; background: #f8f9fa; padding: 20px; border-radius: 15px; border: 1px solid #e9ecef; margin-top: 20px; }
-        #name-display { font-size: 26px; font-weight: 800; color: #2c3e50; margin: 10px 0; min-height: 60px; }
+        :root { --primary: #2c3e50; --accent: #3498db; --danger: #e74c3c; --success: #27ae60; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; margin: 0; padding: 20px; }
+        .container { max-width: 400px; margin: auto; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+        .header { text-align: center; margin-bottom: 20px; }
+        select { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 10px; }
         
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; color: #333; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; }
-
-        .fixed-footer { position: fixed; bottom: 0; left: 0; width: 100%; background: white; padding: 15px; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); display: flex; gap: 15px; justify-content: center; }
-        .btn-big { flex: 1; max-width: 150px; padding: 15px; border: none; border-radius: 15px; cursor: pointer; color: white; font-weight: bold; font-size: 16px; }
-        .present { background: var(--success); }
-        .absent { background: var(--danger); }
+        .progress-container { background: #eee; height: 10px; border-radius: 5px; margin: 10px 0; overflow: hidden; }
+        #progress-bar { height: 100%; background: var(--accent); width: 0%; transition: 0.3s; }
         
-        .action-btn { background: #3498db; color: white; width: 100%; padding: 12px; border: none; border-radius: 8px; cursor: pointer; margin-top: 10px; font-weight: bold; }
-        #summary-box { display: none; padding: 10px; }
+        .card { padding: 20px; background: #f9f9f9; border-radius: 15px; text-align: center; margin: 20px 0; }
+        .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        button { padding: 15px; border: none; border-radius: 10px; color: white; font-weight: bold; cursor: pointer; }
+        
+        .action-btns { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+        .summary-box { border: 1px solid #ddd; padding: 15px; border-radius: 10px; margin-top: 20px; background: white; }
+        #report-date { font-weight: bold; color: var(--primary); margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
     </style>
 </head>
 <body>
 
-<div class="container" id="main-ui">
-    <div class="batch-name">অরুণদীপ্ত Attendance System</div>
-    <div class="progress-container"><div id="progress-bar" style="height:8px; background:var(--primary); width:0%"></div></div>
-    
-    <div class="info-card">
-        <div id="roll-display">Roll: 1</div>
-        <div id="name-display">...</div>
-        <div id="phone-display">📞 ---</div>
+<div class="container">
+    <div class="header">
+        <h3 style="margin:0">অরুণদীপ্ত Attendance</h3>
+        <small id="current-date-ui"></small>
+        <select id="subject-select" onchange="resetUI()">
+            <option value="Anatomy">Anatomy</option>
+            <option value="Physiology">Physiology</option>
+            <option value="Biochemistry">Biochemistry</option>
+        </select>
+        <div class="progress-container"><div id="progress-bar"></div></div>
     </div>
-    
-    <button class="action-btn" style="background:#7f8c8d;" onclick="undo()">⬅ Undo Previous</button>
-</div>
 
-<div class="fixed-footer" id="action-buttons">
-    <button class="btn-big absent" onclick="mark('Absent')">ABSENT</button>
-    <button class="btn-big present" onclick="mark('Present')">PRESENT</button>
-</div>
-
-<div class="container" id="summary-box">
-    <div id="capture-area" style="background: white; padding: 10px;">
-        <h3>Absent List</h3>
-        <p id="date-display"></p>
-        <div id="table-container"></div>
+    <div id="mark-section">
+        <div class="card">
+            <div id="roll-display" style="color: #666;">Roll: 1</div>
+            <div id="name-display" style="font-size: 20px; font-weight: bold; margin: 10px 0;">---</div>
+        </div>
+        <div class="btn-row">
+            <button style="background: var(--danger);" onclick="mark('Absent')">ABSENT</button>
+            <button style="background: var(--success);" onclick="mark('Present')">PRESENT</button>
+        </div>
+        <button style="background: #95a5a6; width: 100%; margin-top:10px;" onclick="undo()">Undo</button>
     </div>
-    <button class="action-btn" style="background: #27ae60;" onclick="downloadPNG()">📸 Download as PNG</button>
-    <button class="action-btn" style="background:#2c3e50;" onclick="location.reload()">Start New Session</button>
+
+    <div class="summary-box" id="capture-area">
+        <h4 style="margin:0">Absent List</h4>
+        <div id="report-date"></div> <div id="absent-list-output">No absent yet.</div>
+    </div>
+
+    <div class="action-btns">
+        <button style="background: var(--primary);" onclick="downloadPNG()">📸 Download PNG</button>
+        <button style="background: var(--accent);" onclick="copyWhatsAppMessage()">📋 Copy WhatsApp Message</button>
+    </div>
 </div>
 
 <script>
-    // ... (তোমার আগের স্টুডেন্ট লিস্টটি এখানে আগের মতোই থাকবে) ...
     const students = [
         { "roll": "1", "name": "MD. KAWSER AZAM", "mobile_number": "01839580475" },
         { "roll": "2", "name": "S. B. ANURADHA", "mobile_number": "01756240091" },
@@ -137,13 +140,40 @@
         { "roll": "75", "name": "SINTHIYA ISLAM SIMI", "mobile_number": "" }
     ];
 
+
+    let attendance = JSON.parse(localStorage.getItem('attendance_data')) || {};
     let currentIndex = 0;
-    let attendance = {};
+
+    function getSubject() { return document.getElementById('subject-select').value; }
+    
+    // তারিখ সেট করার ফাংশন
+    function setDateDisplay() {
+        const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        const dateStr = new Date().toLocaleDateString('en-US', dateOptions);
+        document.getElementById('current-date-ui').innerText = dateStr;
+        document.getElementById('report-date').innerText = "Date: " + dateStr;
+    }
+
+    function updateUI() {
+        if (!attendance[getSubject()]) attendance[getSubject()] = {};
+        
+        let progress = (currentIndex / students.length) * 100;
+        document.getElementById('progress-bar').style.width = progress + "%";
+        
+        if (currentIndex < students.length) {
+            document.getElementById('roll-display').innerText = "Roll: " + students[currentIndex].roll;
+            document.getElementById('name-display').innerText = students[currentIndex].name;
+        } else {
+            document.getElementById('name-display').innerText = "Session Complete! ✅";
+        }
+        renderList();
+    }
 
     function mark(status) {
         if (currentIndex < students.length) {
-            attendance[students[currentIndex].roll] = status;
+            attendance[getSubject()][students[currentIndex].roll] = status;
             currentIndex++;
+            localStorage.setItem('attendance_data', JSON.stringify(attendance));
             updateUI();
         }
     }
@@ -151,54 +181,51 @@
     function undo() {
         if (currentIndex > 0) {
             currentIndex--;
-            delete attendance[students[currentIndex].roll];
+            delete attendance[getSubject()][students[currentIndex].roll];
             updateUI();
         }
     }
 
-    function updateUI() {
-        if (currentIndex >= students.length) {
-            showSummary();
-        } else {
-            let s = students[currentIndex];
-            document.getElementById('roll-display').innerText = "Roll: " + s.roll;
-            document.getElementById('name-display').innerText = s.name;
-            document.getElementById('phone-display').innerText = s.mobile_number ? "📞 " + s.mobile_number : "📞 ---";
-            document.getElementById('progress-bar').style.width = (currentIndex / students.length) * 100 + "%";
-            document.getElementById('main-ui').style.display = 'block';
-            document.getElementById('action-buttons').style.display = 'flex';
-            document.getElementById('summary-box').style.display = 'none';
-        }
-    }
-
-    function showSummary() {
-        document.getElementById('main-ui').style.display = 'none';
-        document.getElementById('action-buttons').style.display = 'none';
-        document.getElementById('summary-box').style.display = 'block';
-        
-        const date = new Date().toLocaleDateString();
-        document.getElementById('date-display').innerText = "Date: " + date;
-        
-        let html = `<table><tr><th>Roll</th><th>Name</th><th>Mobile</th></tr>`;
+    function renderList() {
+        let list = attendance[getSubject()];
+        let html = "<ul style='padding-left: 20px; margin: 0;'>";
         students.forEach(s => {
-            if(attendance[s.roll] === 'Absent') {
-                html += `<tr><td>${s.roll}</td><td>${s.name}</td><td>${s.mobile_number}</td></tr>`;
-            }
+            if(list[s.roll] === 'Absent') html += `<li>Roll ${s.roll}: ${s.name}</li>`;
         });
-        html += `</table>`;
-        document.getElementById('table-container').innerHTML = html;
+        html += "</ul>";
+        document.getElementById('absent-list-output').innerHTML = html || "All Present! 🎉";
     }
 
     function downloadPNG() {
-        const element = document.getElementById("capture-area");
-        html2canvas(element).then(canvas => {
-            const link = document.createElement("a");
-            link.download = "Absent_List_" + new Date().toLocaleDateString().replace(/\//g, '-') + ".png";
-            link.href = canvas.toDataURL("image/png");
+        // PNG ডাউনলোডের সময় ব্যাকগ্রাউন্ড সাদা রাখার জন্য
+        document.getElementById("capture-area").style.background = "white";
+        html2canvas(document.getElementById("capture-area")).then(canvas => {
+            let link = document.createElement("a");
+            link.download = `Absent_${getSubject()}_${new Date().toLocaleDateString().replace(/\//g, '-')}.png`;
+            link.href = canvas.toDataURL();
             link.click();
         });
     }
 
+    function copyWhatsAppMessage() {
+        const dateStr = new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
+        let msg = `*Absent List: ${getSubject()}*\n*Date: ${dateStr}*\n\n`;
+        let count = 0;
+        students.forEach(s => {
+            if(attendance[getSubject()][s.roll] === 'Absent') {
+                msg += `❌ Roll ${s.roll}: ${s.name}\n`;
+                count++;
+            }
+        });
+        if(count === 0) msg += "All present today! ✅";
+        navigator.clipboard.writeText(msg);
+        alert("Copied! Now paste to WhatsApp.");
+    }
+
+    function resetUI() { currentIndex = 0; updateUI(); }
+    
+    // লোড হওয়ার সময় ডেট সেট হবে
+    setDateDisplay();
     updateUI();
 </script>
 </body>
