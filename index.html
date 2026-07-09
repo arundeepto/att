@@ -51,6 +51,20 @@
 
         .action-btns { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
 
+        /* Absent list টেবিল (ডাউনলোড হওয়া PNG-তে দেখানো হয়) */
+        table.absent-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        table.absent-table th {
+            background: var(--danger);
+            color: white;
+            padding: 8px 6px;
+            text-align: left;
+            font-size: 13px;
+        }
+        table.absent-table th:first-child, table.absent-table td:first-child { text-align: center; width: 20%; }
+        table.absent-table td { padding: 8px 6px; border-bottom: 1px solid #eee; }
+        table.absent-table tr:nth-child(even) td { background: #fdf2f1; }
+        .all-present-msg { text-align: center; padding: 15px; color: var(--success); font-weight: bold; font-size: 15px; }
+
         /* লগইন স্ক্রিন */
         #login-screen { max-width: 400px; margin: 60px auto; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); text-align: center; }
         #login-error { color: var(--danger); font-size: 13px; min-height: 18px; margin-bottom: 5px; }
@@ -94,6 +108,11 @@
             <option value="Physiology">Physiology</option>
             <option value="Biochemistry">Biochemistry</option>
         </select>
+        <select id="session-select" onchange="onSubjectChange()">
+            <option value="1">Class 1 (আজকের ১ম ক্লাস)</option>
+            <option value="2">Class 2 (আজকের ২য় ক্লাস)</option>
+            <option value="3">Class 3 (আজকের ৩য় ক্লাস)</option>
+        </select>
         <div class="progress-container"><div id="progress-bar"></div></div>
         <div id="sync-status">সিঙ্ক করা হচ্ছে...</div>
     </div>
@@ -118,8 +137,9 @@
             </div>
             <img src="l.jpg" alt="Batch Logo" class="logo-img" onerror="this.style.display='none'">
         </div>
-        <h4 style="margin-bottom: 10px; color: var(--danger);">Absent List:</h4>
-        <div id="absent-list-output" style="min-height: 50px; font-size: 14px;">No absent yet.</div>
+        <h4 style="margin: 0 0 10px; color: var(--danger);">❌ Absent List</h4>
+        <div id="absent-list-output" style="min-height: 50px;">No absent yet.</div>
+        <div id="absent-count-footer" style="margin-top:12px; font-size:12px; color:#7f8c8d; text-align:right;"></div>
     </div>
 
     <div class="action-btns">
@@ -279,11 +299,8 @@
     {"roll": 70, "name": "KABBO PROSAD GUPTA"},
     {"roll": 71, "name": "MD. MUNTASIR MAHMUD MUHI"},
     {"roll": 72, "name": "TASNIM TABASSUM TISHA"},
-    {"roll": 73, "name": "MD. TANJIMUL ISLAM"},
-     {"roll": 74, "name": "Tofayel Ahmed Maruf"},
-     {"roll": 75, "name": "Sinthiya Islam Simi"}
+    {"roll": 73, "name": "MD. TANJIMUL ISLAM"}
 ]
-
 
     // ============= লোকাল স্টেট =============
     // attendanceCache: { "Anatomy_2026-07-10": { "1": "Absent", "2": "Present", ... } }
@@ -298,9 +315,10 @@
     }
 
     function getSubject() { return document.getElementById('subject-select').value; }
+    function getSession() { return document.getElementById('session-select').value; }
 
-    function getKey(subject, dateStr) {
-        return `${subject}_${dateStr || todayStr()}`;
+    function getKey(subject, dateStr, session) {
+        return `${subject}_${dateStr || todayStr()}_C${session || getSession()}`;
     }
 
     function saveLocal() {
@@ -313,13 +331,14 @@
     }
 
     // ============= Firebase এ সেভ/লোড =============
-    async function saveToFirestore(key, subject, dateStr) {
+    async function saveToFirestore(key, subject, dateStr, session) {
         try {
             setSyncStatus("সিঙ্ক করা হচ্ছে...");
             const ref = window._fb.doc(window._db, "attendance", key);
             await window._fb.setDoc(ref, {
                 subject: subject,
                 date: dateStr,
+                session: session,
                 records: attendanceCache[key] || {},
                 updatedAt: new Date().toISOString()
             });
@@ -352,7 +371,8 @@
     async function onSubjectChange() {
         const subject = getSubject();
         const dateStr = todayStr();
-        const key = getKey(subject, dateStr);
+        const session = getSession();
+        const key = getKey(subject, dateStr, session);
 
         setSyncStatus("লোড হচ্ছে...");
         // প্রথমে লোকাল ক্যাশ থেকে দেখাও (দ্রুত), তারপর Firestore থেকে হালনাগাদ ডেটা আনো
@@ -380,7 +400,7 @@
     }
 
     function updateUI() {
-        document.getElementById('report-subject-title').innerText = getSubject();
+        document.getElementById('report-subject-title').innerText = getSubject() + " (Class " + getSession() + ")";
 
         let progress = (currentIndex / students.length) * 100;
         document.getElementById('progress-bar').style.width = progress + "%";
@@ -396,39 +416,54 @@
 
     function mark(status) {
         if (currentIndex < students.length) {
-            const key = getKey(getSubject(), todayStr());
+            const key = getKey(getSubject(), todayStr(), getSession());
             attendanceCache[key][students[currentIndex].roll] = status;
             currentIndex++;
             saveLocal();
             updateUI();
-            saveToFirestore(key, getSubject(), todayStr());
+            saveToFirestore(key, getSubject(), todayStr(), getSession());
         }
     }
 
     function undo() {
         if (currentIndex > 0) {
             currentIndex--;
-            const key = getKey(getSubject(), todayStr());
+            const key = getKey(getSubject(), todayStr(), getSession());
             delete attendanceCache[key][students[currentIndex].roll];
             saveLocal();
             updateUI();
-            saveToFirestore(key, getSubject(), todayStr());
+            saveToFirestore(key, getSubject(), todayStr(), getSession());
         }
     }
 
     function renderList() {
-        const key = getKey(getSubject(), todayStr());
+        const key = getKey(getSubject(), todayStr(), getSession());
         let list = attendanceCache[key] || {};
-        let html = "<ul style='padding-left: 20px; margin: 0;'>";
-        let found = false;
+        let rows = "";
+        let absentCount = 0;
+        let presentCount = 0;
         students.forEach(s => {
-            if (list[s.roll] === 'Absent') {
-                html += `<li>Roll ${s.roll}: ${s.name}</li>`;
-                found = true;
+            const status = list[s.roll];
+            if (status === 'Absent') {
+                absentCount++;
+                rows += `<tr><td>${s.roll}</td><td>${s.name}</td></tr>`;
+            } else if (status === 'Present') {
+                presentCount++;
             }
         });
-        html += "</ul>";
-        document.getElementById('absent-list-output').innerHTML = found ? html : "All Present! 🎉";
+
+        if (absentCount === 0 && presentCount === 0) {
+            document.getElementById('absent-list-output').innerHTML = "No absent yet.";
+        } else if (absentCount === 0) {
+            document.getElementById('absent-list-output').innerHTML = `<div class="all-present-msg">All Present! 🎉</div>`;
+        } else {
+            document.getElementById('absent-list-output').innerHTML =
+                `<table class="absent-table"><thead><tr><th>Roll</th><th>Name</th></tr></thead><tbody>${rows}</tbody></table>`;
+        }
+
+        const marked = absentCount + presentCount;
+        document.getElementById('absent-count-footer').innerText =
+            marked > 0 ? `মার্ক করা হয়েছে: ${marked}/${students.length} | অনুপস্থিত: ${absentCount}` : "";
     }
 
     function downloadPNG() {
@@ -438,17 +473,17 @@
             useCORS: true
         }).then(canvas => {
             let link = document.createElement("a");
-            link.download = `Absent_${getSubject()}_${new Date().toLocaleDateString().replace(/\//g, '-')}.png`;
+            link.download = `Absent_${getSubject()}_C${getSession()}_${new Date().toLocaleDateString().replace(/\//g, '-')}.png`;
             link.href = canvas.toDataURL("image/png");
             link.click();
         });
     }
 
     function copyWhatsAppMessage() {
-        const key = getKey(getSubject(), todayStr());
+        const key = getKey(getSubject(), todayStr(), getSession());
         const list = attendanceCache[key] || {};
         const dateStr = new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
-        let msg = `*Absent List: ${getSubject()}*\n*Date: ${dateStr}*\n\n`;
+        let msg = `*Absent List: ${getSubject()} (Class ${getSession()})*\n*Date: ${dateStr}*\n\n`;
         let count = 0;
         students.forEach(s => {
             if (list[s.roll] === 'Absent') {
@@ -495,29 +530,57 @@
             );
             const snap = await window._fb.getDocs(q);
 
-            // student roll -> {present, absent, total}
+            // student roll -> {present, absent}
             const tally = {};
             students.forEach(s => tally[s.roll] = { present: 0, absent: 0 });
 
-            let sessionCount = 0;
+            // প্রতিটা সেশন (তারিখ + বিষয় + ক্লাস নম্বর) আলাদাভাবে সংগ্রহ করা হচ্ছে
+            const sessions = [];
+
             snap.forEach(docSnap => {
                 const data = docSnap.data();
                 if (subjectFilter !== "All" && data.subject !== subjectFilter) return;
-                sessionCount++;
+
                 const records = data.records || {};
+                let sPresent = 0, sAbsent = 0;
+                const absentNames = [];
                 students.forEach(s => {
                     const status = records[s.roll] ?? records[String(s.roll)];
-                    if (status === 'Present') tally[s.roll].present++;
-                    else if (status === 'Absent') tally[s.roll].absent++;
+                    if (status === 'Present') { tally[s.roll].present++; sPresent++; }
+                    else if (status === 'Absent') { tally[s.roll].absent++; sAbsent++; absentNames.push(`${s.roll}-${s.name}`); }
+                });
+
+                sessions.push({
+                    date: data.date,
+                    subject: data.subject,
+                    session: data.session || 1,
+                    present: sPresent,
+                    absent: sAbsent,
+                    absentNames: absentNames
                 });
             });
 
-            if (sessionCount === 0) {
+            if (sessions.length === 0) {
                 resultBox.innerHTML = "এই মাসে কোনো রেকর্ড পাওয়া যায়নি।";
                 return;
             }
 
-            let html = `<p style="font-size:13px; color:#7f8c8d;">মোট সেশন: ${sessionCount} (${subjectFilter === 'All' ? 'সব বিষয়' : subjectFilter})</p>`;
+            // তারিখ ও ক্লাস নম্বর অনুযায়ী সাজানো
+            sessions.sort((a, b) => (a.date + a.session).localeCompare(b.date + b.session));
+
+            let html = `<p style="font-size:13px; color:#7f8c8d;">মোট সেশন: ${sessions.length} (${subjectFilter === 'All' ? 'সব বিষয়' : subjectFilter})</p>`;
+
+            // ১) তারিখ-ভিত্তিক লগ (কে কবে অনুপস্থিত ছিল)
+            html += `<h4 style="margin:15px 0 5px;">📅 তারিখ অনুযায়ী রেকর্ড</h4>`;
+            html += `<table class="report-table"><thead><tr><th>Date</th><th>Subject</th><th>Class</th><th>P</th><th>A</th><th>Absent Roll</th></tr></thead><tbody>`;
+            sessions.forEach(s => {
+                const absentStr = s.absentNames.length > 0 ? s.absentNames.map(n => n.split('-')[0]).join(', ') : '-';
+                html += `<tr><td>${s.date}</td><td>${s.subject}</td><td>${s.session}</td><td>${s.present}</td><td>${s.absent}</td><td style="text-align:left;">${absentStr}</td></tr>`;
+            });
+            html += `</tbody></table>`;
+
+            // ২) ছাত্র-ভিত্তিক মাসিক সারাংশ
+            html += `<h4 style="margin:20px 0 5px;">🧑‍🎓 ছাত্র-ভিত্তিক সারাংশ</h4>`;
             html += `<table class="report-table"><thead><tr><th>Roll</th><th>Name</th><th>Present</th><th>Absent</th><th>%</th></tr></thead><tbody>`;
             students.forEach(s => {
                 const t = tally[s.roll];
@@ -526,6 +589,7 @@
                 html += `<tr><td>${s.roll}</td><td>${s.name}</td><td>${t.present}</td><td>${t.absent}</td><td>${pct}%</td></tr>`;
             });
             html += `</tbody></table>`;
+
             resultBox.innerHTML = html;
         } catch (e) {
             console.error(e);
