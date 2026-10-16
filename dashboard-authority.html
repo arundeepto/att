@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#006a4e" />
+<title>Authority Dashboard · IHMS</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="min-h-screen bg-slate-50 pb-20">
+
+<!-- NAVBAR -->
+<nav class="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm">
+  <div class="max-w-7xl mx-auto px-4 flex items-center justify-between h-16">
+    <div class="flex items-center gap-2">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-[#006a4e] to-[#00875a] flex items-center justify-center text-white text-lg font-bold shadow">🏛️</div>
+      <div>
+        <h1 class="font-bold text-gray-800 text-sm leading-tight">IHMS</h1>
+        <p class="text-[9px] text-gray-400 tracking-widest">GOVT AUTHORITY</p>
+      </div>
+    </div>
+    <button id="logoutBtn" class="text-xs md:text-sm px-3 md:px-4 py-2 rounded-lg border border-gray-200 hover:bg-gray-50">Logout</button>
+  </div>
+</nav>
+
+<main class="max-w-7xl mx-auto p-3 md:p-6">
+
+  <div class="mb-6">
+    <h1 class="text-xl md:text-2xl font-bold text-gray-800">🇧🇩 National Health Overview</h1>
+    <p class="text-sm text-gray-500 mt-1">Real-time monitoring of IHMS health sector</p>
+  </div>
+
+  <!-- TOP STATS -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
+    <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+      <div class="text-2xl mb-1">👥</div>
+      <p class="text-2xl font-bold text-gray-800" id="statPatients">0</p>
+      <p class="text-xs text-gray-500">Total Patients</p>
+    </div>
+    <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+      <div class="text-2xl mb-1">🩺</div>
+      <p class="text-2xl font-bold text-gray-800" id="statDoctors">0</p>
+      <p class="text-xs text-gray-500">Registered Doctors</p>
+    </div>
+    <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+      <div class="text-2xl mb-1">🏥</div>
+      <p class="text-2xl font-bold text-gray-800" id="statHospitals">0</p>
+      <p class="text-xs text-gray-500">Hospitals</p>
+    </div>
+    <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+      <div class="text-2xl mb-1">💊</div>
+      <p class="text-2xl font-bold text-gray-800" id="statPharmacies">0</p>
+      <p class="text-xs text-gray-500">Pharmacies</p>
+    </div>
+  </div>
+
+  <!-- TAX & REVENUE -->
+  <div class="grid md:grid-cols-2 gap-4 md:gap-6 mb-6">
+    <div class="bg-gradient-to-br from-[#006a4e] to-[#00875a] rounded-2xl p-6 text-white shadow-lg">
+      <div class="flex justify-between items-start mb-4">
+        <h2 class="font-semibold">💰 Estimated Tax Revenue (this month)</h2>
+        <span class="text-xs bg-white/20 px-2 py-1 rounded-full">Auto-calculated</span>
+      </div>
+      <p class="text-3xl md:text-4xl font-bold" id="taxRevenue">৳0</p>
+      <p class="text-xs text-green-100 mt-2">From dispensed medicines & treatments</p>
+    </div>
+
+    <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+      <h2 class="font-semibold text-gray-800 mb-4">📊 System Health</h2>
+      <div class="space-y-3 text-sm">
+        <div class="flex justify-between">
+          <span class="text-gray-600">AI Scans Today</span>
+          <span class="font-semibold" id="aiScansToday">0</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-gray-600">Active Nurse Calls</span>
+          <span class="font-semibold text-red-600" id="activeCalls">0</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-gray-600">Doctors Verified (BMDC)</span>
+          <span class="font-semibold text-green-600" id="verifiedDoctors">0</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-gray-600">Referrals Today</span>
+          <span class="font-semibold" id="refsToday">0</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROLE BREAKDOWN -->
+  <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 mb-6">
+    <h2 class="font-semibold text-gray-800 mb-4">👥 Users by Role</h2>
+    <div id="roleBreakdown" class="grid grid-cols-2 md:grid-cols-3 gap-3">
+      <p class="text-sm text-gray-400">Loading...</p>
+    </div>
+  </div>
+
+  <!-- DISEASE TRACKER -->
+  <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 mb-6">
+    <h2 class="font-semibold text-gray-800 mb-4">🦠 Top Reported Diagnoses</h2>
+    <div id="diseaseList" class="space-y-2 text-sm">
+      <p class="text-gray-400">Loading...</p>
+    </div>
+  </div>
+
+  <!-- BMDC VERIFICATION -->
+  <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+    <h2 class="font-semibold text-gray-800 mb-4">✅ Anti-Quackery: BMDC Verification Status</h2>
+    <div class="bg-green-50 border border-green-100 rounded-xl p-4 text-sm text-green-800">
+      <p class="font-medium mb-1">Only BMDC-registered doctors can prescribe in IHMS.</p>
+      <p class="text-xs">This prevents quackery and ensures safe medical practices across Bangladesh.</p>
+    </div>
+    <div id="bmdcList" class="mt-4 space-y-2 text-sm">
+      <p class="text-gray-400">Loading...</p>
+    </div>
+  </div>
+
+</main>
+
+<script type="module" src="js/authority.js"></script>
+</body>
+</html>
