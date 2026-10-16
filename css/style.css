@@ -1,7 +1,47 @@
-/* Smart Health Pass — Custom Styles */
-body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; }
+/* ===== IHMS Custom Styles ===== */
+body { font-family: system-ui, -apple-system, 'Segoe UI', 'Hind Siliguri', sans-serif; }
 
-/* Tabs */
+/* Role cards on landing */
+.role-card {
+  display: block;
+  background: #ffffff;
+  border: 1px solid #f1f5f9;
+  border-radius: 20px;
+  padding: 20px;
+  text-align: center;
+  transition: all 0.25s ease;
+  cursor: pointer;
+  text-decoration: none;
+}
+.role-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px -10px rgba(0, 106, 78, 0.25);
+  border-color: #006a4e;
+}
+.role-card:hover .text-4xl { transform: scale(1.1); }
+
+/* Role pills for login */
+.role-pill {
+  padding: 8px 6px;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.role-pill:hover { border-color: #006a4e; color: #006a4e; }
+.role-pill.active {
+  background: #006a4e;
+  color: #fff;
+  border-color: #006a4e;
+  font-weight: 600;
+}
+
+/* Tab navigation */
 .tab-btn {
   padding: 14px 16px;
   font-size: 13px;
@@ -13,19 +53,19 @@ body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; }
   cursor: pointer;
   background: transparent;
 }
-.tab-btn:hover { color: #0d9488; }
+.tab-btn:hover { color: #006a4e; }
 .tab-btn.active {
-  color: #0f766e;
-  border-bottom-color: #0d9488;
+  color: #006a4e;
+  border-bottom-color: #006a4e;
   font-weight: 600;
 }
 
-/* Gradient */
+/* Medical gradient */
 .medical-gradient {
-  background: linear-gradient(145deg, #f0fdfa 0%, #ffffff 100%);
+  background: linear-gradient(145deg, #f0fdf4 0%, #ffffff 100%);
 }
 
-/* Bed cards */
+/* Bed status cards */
 .bed-card {
   padding: 12px;
   border-radius: 12px;
@@ -37,11 +77,19 @@ body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; }
 .bed-critical    { background:#fee2e2; border-left:5px solid #ef4444; }
 
 /* Scrollbars */
-#historyList::-webkit-scrollbar,
-.bg-slate-50::-webkit-scrollbar { width: 6px; }
-#historyList::-webkit-scrollbar-thumb,
-.bg-slate-50::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius:3px; }
-
-/* Hide tab scrollbar on mobile */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius:3px; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Status badges */
+.badge-stable    { background:#d1fae5; color:#065f46; }
+.badge-critical  { background:#fee2e2; color:#991b1b; }
+.badge-observation { background:#fef9c3; color:#854d0e; }
+
+/* Pulse animation for emergency */
+@keyframes pulse-red {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(244, 42, 65, 0.4); }
+  50% { box-shadow: 0 0 0 12px rgba(244, 42, 65, 0); }
+}
+.emergency-pulse { animation: pulse-red 1.5s infinite; }
