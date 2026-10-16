@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#006a4e" />
+<title>Register · IHMS</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="min-h-screen bg-gradient-to-br from-green-50 via-white to-red-50 flex items-center justify-center p-3 py-8">
+
+<div class="w-full max-w-md">
+  <div class="text-center mb-6">
+    <a href="index.html" class="inline-flex items-center gap-2">
+      <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[#006a4e] to-[#00875a] flex items-center justify-center text-white text-xl font-bold shadow-md">⚕️</div>
+    </a>
+    <h1 class="text-2xl font-bold text-gray-800 mt-3">Create Patient Account</h1>
+    <p class="text-sm text-gray-500 mt-1">Get your unique Digital Health Pass 🆔</p>
+  </div>
+
+  <div class="bg-white rounded-3xl shadow-xl border border-gray-100 p-6">
+    <form id="registerForm" class="space-y-4">
+
+      <div>
+        <label class="text-xs font-medium text-gray-500">Full Name</label>
+        <input type="text" id="regName" required
+          class="w-full border border-gray-200 rounded-xl p-3 mt-1 text-sm focus:ring-2 focus:ring-[#006a4e] focus:border-transparent outline-none"
+          placeholder="Rahul Verma" />
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-xs font-medium text-gray-500">Blood Group</label>
+          <select id="regBlood" class="w-full border border-gray-200 rounded-xl p-3 mt-1 text-sm">
+            <option>A+</option><option>A-</option><option>B+</option><option>B-</option>
+            <option>O+</option><option>O-</option><option>AB+</option><option>AB-</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs font-medium text-gray-500">Age</label>
+          <input type="number" id="regAge" required min="1" max="120"
+            class="w-full border border-gray-200 rounded-xl p-3 mt-1 text-sm"
+            placeholder="28" />
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-xs font-medium text-gray-500">Gender</label>
+          <select id="regGender" class="w-full border border-gray-200 rounded-xl p-3 mt-1 text-sm">
+            <option>Male</option><option>Female</option><option>Other</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs font-medium text-gray-500">Phone</label>
+          <input type="tel" id="regPhone"
+            class="w-full border border-gray-200 rounded-xl p-3 mt-1 text-sm"
+            placeholder="01XXXXXXXXX" />
+        </div>
+      </div>
+
+      <div>
+        <label class="text-xs font-medium text-gray-500">Email</label>
+        <input type="email" id="regEmail" required
+          class="w-full border border-gray-200 rounded-xl p-3 mt-1 text-sm"
+          placeholder="you@example.com" />
+      </div>
+
+      <div>
+        <label class="text-xs font-medium text-gray-500">Password (min 6 chars)</label>
+        <input type="password" id="regPassword" required minlength="6"
+          class="w-full border border-gray-200 rounded-xl p-3 mt-1 text-sm"
+          placeholder="••••••••" />
+      </div>
+
+      <div class="flex items-start gap-2 text-xs text-gray-500">
+        <input type="checkbox" id="regTerms" required class="mt-1" />
+        <label for="regTerms">I agree to IHMS terms & data privacy policy</label>
+      </div>
+
+      <button type="submit" id="regBtn"
+        class="w-full bg-[#006a4e] hover:bg-[#005a42] text-white py-3 rounded-xl font-medium transition shadow-lg shadow-green-900/10 disabled:opacity-50">
+        Create Account
+      </button>
+
+      <p id="regError" class="text-xs text-red-500 text-center min-h-[16px]"></p>
+    </form>
+
+    <div class="mt-5 text-center text-sm text-gray-500">
+      Already have an account? <a href="login.html" class="text-[#006a4e] font-medium hover:underline">Login</a>
+    </div>
+  </div>
+
+  <p class="text-center text-xs text-gray-400 mt-4">© 2025 IHMS · Nilphamari Medical College</p>
+</div>
+
+<script type="module" src="js/auth.js"></script>
+</body>
+</html>
