@@ -7,13 +7,13 @@ import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.0/firebas
 
 // 🔧 STEP 1: Firebase Console → Project Settings → Web App → Config copy
 const firebaseConfig = {
-  apiKey: "YOUR_FIREBASE_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
-};
+    apiKey: "AIzaSyAewLllHLC5IBces1RCzfxZ4k19k3dU_Lw",
+    authDomain: "healthcare-f59c5.firebaseapp.com",
+    projectId: "healthcare-f59c5",
+    storageBucket: "healthcare-f59c5.firebasestorage.app",
+    messagingSenderId: "335899809673",
+    appId: "1:335899809673:web:d395f1a579bcec2b12f358"
+  };
 
 // 🔧 STEP 2: Get Gemini API key from https://aistudio.google.com/app/apikey
 export const GEMINI_API_KEY = "YOUR_GEMINI_API_KEY";
