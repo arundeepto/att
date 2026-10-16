@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#006a4e" />
+<title>Pharmacy Dashboard · IHMS</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="min-h-screen bg-slate-50 pb-20">
+
+<!-- NAVBAR -->
+<nav class="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm">
+  <div class="max-w-7xl mx-auto px-4 flex items-center justify-between h-16">
+    <div class="flex items-center gap-2">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-[#006a4e] to-[#00875a] flex items-center justify-center text-white text-lg font-bold shadow">💊</div>
+      <div>
+        <h1 class="font-bold text-gray-800 text-sm leading-tight">IHMS</h1>
+        <p class="text-[9px] text-gray-400 tracking-widest">PHARMACY PORTAL</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+      <span id="pharmacyName" class="hidden md:block text-sm text-gray-600"></span>
+      <button id="logoutBtn" class="text-xs md:text-sm px-3 md:px-4 py-2 rounded-lg border border-gray-200 hover:bg-gray-50">Logout</button>
+    </div>
+  </div>
+</nav>
+
+<!-- TABS -->
+<div class="bg-white border-b border-gray-200 sticky top-16 z-30">
+  <div class="max-w-7xl mx-auto px-2 md:px-4 flex gap-1 overflow-x-auto no-scrollbar">
+    <button data-tab="scan" class="tab-btn active">📷 QR Scan</button>
+    <button data-tab="dispense" class="tab-btn">💊 Dispense</button>
+    <button data-tab="stock" class="tab-btn">📦 Stock</button>
+    <button data-tab="history" class="tab-btn">📋 History</button>
+  </div>
+</div>
+
+<main class="max-w-7xl mx-auto p-3 md:p-6">
+
+  <!-- STATS -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+    <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+      <div class="text-2xl mb-1">💊</div>
+      <p class="text-2xl font-bold text-gray-800" id="statTotalMeds">0</p>
+      <p class="text-xs text-gray-500">Total Medicines</p>
+    </div>
+    <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+      <div class="text-2xl mb-1">⚠️</div>
+      <p class="text-2xl font-bold text-yellow-600" id="statLowStock">0</p>
+      <p class="text-xs text-gray-500">Low Stock</p>
+    </div>
+    <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+      <div class="text-2xl mb-1">✅</div>
+      <p class="text-2xl font-bold text-green-600" id="statDispensed">0</p>
+      <p class="text-xs text-gray-500">Dispensed Today</p>
+    </div>
+    <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+      <div class="text-2xl mb-1">💰</div>
+      <p class="text-2xl font-bold text-[#006a4e]" id="statRevenue">৳0</p>
+      <p class="text-xs text-gray-500">Today Revenue</p>
+    </div>
+  </div>
+
+  <!-- ========== TAB 1: QR SCAN ========== -->
+  <section id="tab-scan" class="tab-panel">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+      <h2 class="text-lg md:text-xl font-bold text-gray-800 mb-4">📷 Scan Patient QR / Enter Health ID</h2>
+
+      <div class="grid md:grid-cols-2 gap-5">
+        <div>
+          <div class="border-2 border-dashed border-[#006a4e]/40 bg-green-50/40 rounded-2xl p-6 text-center">
+            <div class="text-5xl mb-2">📷</div>
+            <p class="text-sm text-gray-600">Camera QR scan</p>
+            <p class="text-xs text-gray-400 mt-1">(Or enter ID manually on the right)</p>
+          </div>
+
+          <div class="mt-4 flex gap-3">
+            <input id="scanHealthId" placeholder="IHMS-XXXXXX" class="flex-1 border rounded-xl p-3 text-sm" />
+            <button id="scanBtn" class="bg-[#006a4e] text-white px-5 rounded-xl text-sm font-medium">Find</button>
+          </div>
+          <p id="scanStatus" class="text-xs text-gray-500 mt-2 text-center"></p>
+        </div>
+
+        <div id="scanResult" class="hidden">
+          <!-- Filled dynamically -->
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== TAB 2: DISPENSE ========== -->
+  <section id="tab-dispense" class="tab-panel hidden">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+      <h2 class="text-lg md:text-xl font-bold text-gray-800 mb-4">💊 Dispense Medicine</h2>
+
+      <div class="grid md:grid-cols-2 gap-5 text-sm">
+        <div class="space-y-3">
+          <div>
+            <label class="text-xs text-gray-500 font-medium">Patient Health ID</label>
+            <input id="dispHealthId" class="w-full border rounded-xl p-3 mt-1" placeholder="IHMS-XXXXXX" />
+          </div>
+          <div>
+            <label class="text-xs text-gray-500 font-medium">Medicine Name</label>
+            <input id="dispMedName" list="stockList" class="w-full border rounded-xl p-3 mt-1" placeholder="Start typing..." />
+            <datalist id="stockList"></datalist>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs text-gray-500 font-medium">Quantity</label>
+              <input id="dispQty" type="number" min="1" class="w-full border rounded-xl p-3 mt-1" placeholder="10" />
+            </div>
+            <div>
+              <label class="text-xs text-gray-500 font-medium">Price (৳)</label>
+              <input id="dispPrice" type="number" class="w-full border rounded-xl p-3 mt-1" placeholder="150" />
+            </div>
+          </div>
+        </div>
+
+        <div class="space-y-3">
+          <div class="bg-slate-50 border rounded-xl p-3">
+            <p class="text-xs text-gray-500">Prescribed Medications</p>
+            <div id="dispPrescribed" class="mt-2 text-xs text-gray-700">
+              Scan a patient QR first to see their prescriptions
+            </div>
+          </div>
+
+          <button id="dispSaveBtn" class="w-full bg-[#006a4e] hover:bg-[#005a42] text-white py-3 rounded-xl font-medium">
+            💾 Dispense & Save
+          </button>
+          <p id="dispStatus" class="text-xs text-green-700 text-center"></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== TAB 3: STOCK ========== -->
+  <section id="tab-stock" class="tab-panel hidden">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+      <div class="flex flex-wrap justify-between items-center mb-4 gap-2">
+        <h2 class="text-lg md:text-xl font-bold text-gray-800">📦 Medicine Stock</h2>
+        <button id="addMedBtn" class="text-xs bg-[#006a4e] text-white px-4 py-2 rounded-lg">➕ Add Medicine</button>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left text-xs text-gray-500 border-b">
+              <th class="p-2">Medicine</th>
+              <th class="p-2">Stock</th>
+              <th class="p-2">Price</th>
+              <th class="p-2">Status</th>
+            </tr>
+          </thead>
+          <tbody id="stockTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== TAB 4: HISTORY ========== -->
+  <section id="tab-history" class="tab-panel hidden">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+      <h2 class="text-lg md:text-xl font-bold text-gray-800 mb-4">📋 Dispense History</h2>
+      <div id="historyList" class="space-y-2 text-sm">
+        <p class="text-gray-400">No records yet</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- Add Medicine Modal -->
+<div id="addMedModal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl max-w-md w-full p-5">
+    <h3 class="font-bold text-gray-800 mb-4">Add New Medicine</h3>
+    <div class="space-y-3 text-sm">
+      <input id="newMedName" class="w-full border rounded-xl p-3" placeholder="Medicine name" />
+      <div class="grid grid-cols-2 gap-2">
+        <input id="newMedStock" type="number" class="border rounded-xl p-3" placeholder="Initial stock" />
+        <input id="newMedPrice" type="number" class="border rounded-xl p-3" placeholder="Unit price ৳" />
+      </div>
+    </div>
+    <div class="flex gap-2 mt-4">
+      <button id="modalCancel" class="flex-1 bg-gray-100 py-2.5 rounded-xl text-sm">Cancel</button>
+      <button id="modalSave" class="flex-1 bg-[#006a4e] text-white py-2.5 rounded-xl text-sm font-medium">Save</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="js/pharmacy.js"></script>
+</body>
+</html>
