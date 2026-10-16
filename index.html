@@ -1,611 +1,101 @@
 <!DOCTYPE html>
-<html lang="bn">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Arundeepto Attendance Pro</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <style>
-        :root { --primary: #2c3e50; --accent: #3498db; --danger: #e74c3c; --success: #27ae60; }
-        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; margin: 0; padding: 20px; }
-        .container { max-width: 400px; margin: auto; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
-        .header { text-align: center; margin-bottom: 20px; }
-        select, input { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 10px; box-sizing: border-box; }
-
-        .progress-container { background: #eee; height: 10px; border-radius: 5px; margin: 10px 0; overflow: hidden; }
-        #progress-bar { height: 100%; background: var(--accent); width: 0%; transition: 0.3s; }
-
-        .card { padding: 20px; background: #f9f9f9; border-radius: 15px; text-align: center; margin: 20px 0; }
-        button { padding: 15px; border: none; border-radius: 10px; color: white; font-weight: bold; cursor: pointer; width: 100%; }
-        .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-
-        /* উন্নত রিপোর্ট কার্ড ডিজাইন */
-        #capture-area {
-            border: 2px solid var(--primary);
-            padding: 25px;
-            border-radius: 20px;
-            margin-top: 20px;
-            background: #ffffff;
-            color: #333;
-        }
-        .report-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            border-bottom: 2px solid #eee;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-        }
-        .header-text { text-align: left; }
-        .header-text h2 { margin: 0; color: var(--primary); font-size: 22px;}
-        .header-text p { margin: 5px 0 0; font-size: 13px; color: #7f8c8d; }
-
-        .logo-img {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            border: 2px solid var(--accent);
-            object-fit: cover;
-            margin-left: 10px;
-        }
-
-        .action-btns { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
-
-        /* Absent list টেবিল (ডাউনলোড হওয়া PNG-তে দেখানো হয়) */
-        table.absent-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-        table.absent-table th {
-            background: var(--danger);
-            color: white;
-            padding: 8px 6px;
-            text-align: left;
-            font-size: 13px;
-        }
-        table.absent-table th:first-child, table.absent-table td:first-child { text-align: center; width: 20%; }
-        table.absent-table td { padding: 8px 6px; border-bottom: 1px solid #eee; }
-        table.absent-table tr:nth-child(even) td { background: #fdf2f1; }
-        .all-present-msg { text-align: center; padding: 15px; color: var(--success); font-weight: bold; font-size: 15px; }
-
-        /* লগইন স্ক্রিন */
-        #login-screen { max-width: 400px; margin: 60px auto; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); text-align: center; }
-        #login-error { color: var(--danger); font-size: 13px; min-height: 18px; margin-bottom: 5px; }
-        #sync-status { text-align: center; font-size: 12px; color: #7f8c8d; margin-top: -5px; margin-bottom: 10px; }
-        .topbar { display:flex; justify-content: space-between; align-items:center; margin-bottom: 8px; }
-        .topbar button { width: auto; padding: 6px 12px; font-size: 12px; background:#95a5a6; }
-
-        /* মাসিক রিপোর্ট মোডাল */
-        #monthly-modal { display:none; position:fixed; inset:0; background: rgba(0,0,0,0.5); z-index: 100; overflow-y:auto; padding: 20px; }
-        #monthly-modal .container { margin-top: 20px; }
-        table.report-table { width:100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
-        table.report-table th, table.report-table td { border: 1px solid #ddd; padding: 6px 4px; text-align: center; }
-        table.report-table th { background: var(--primary); color: white; }
-        table.report-table td:nth-child(2) { text-align: left; }
-        .close-modal-btn { background: var(--danger); }
-    </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Smart Health Pass · Login</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="css/style.css" />
 </head>
-<body>
+<body class="min-h-screen bg-gradient-to-br from-teal-50 via-white to-blue-50 flex items-center justify-center p-3">
 
-<!-- ================= লগইন স্ক্রিন ================= -->
-<div id="login-screen">
-    <h3>🔒 অরুণদীপ্ত Attendance</h3>
-    <p style="font-size:13px; color:#7f8c8d;">চালিয়ে যেতে লগইন করুন</p>
-    <input type="email" id="login-email" placeholder="Email">
-    <input type="password" id="login-password" placeholder="Password">
-    <div id="login-error"></div>
-    <button style="background: var(--accent);" onclick="doLogin()">Login</button>
+<div class="w-full max-w-5xl grid md:grid-cols-2 bg-white rounded-3xl shadow-2xl overflow-hidden">
+
+  <!-- LEFT BRANDING -->
+  <div class="hidden md:flex flex-col justify-center bg-gradient-to-br from-teal-600 to-blue-700 text-white p-10">
+    <div class="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center text-3xl mb-6">⚕️</div>
+    <h1 class="text-3xl font-bold mb-3">Smart Health Pass</h1>
+    <p class="text-teal-100 text-sm leading-relaxed">
+      National-level Digital Health Platform — AI Prescription Scanner, Digital Health ID,
+      Live Hospital Tracking & Family Access — all in one place.
+    </p>
+    <ul class="mt-8 space-y-3 text-sm">
+      <li>✅ AI-powered prescription extraction</li>
+      <li>✅ Real-time hospital bed tracking</li>
+      <li>✅ Secure Digital Health ID + QR</li>
+      <li>✅ Family live monitoring portal</li>
+    </ul>
+  </div>
+
+  <!-- RIGHT FORM -->
+  <div class="p-6 md:p-12">
+    <div class="mb-6 md:hidden text-center">
+      <div class="w-14 h-14 mx-auto bg-teal-600 rounded-2xl flex items-center justify-center text-white text-2xl mb-3">⚕️</div>
+      <h1 class="text-xl font-bold text-gray-800">Smart Health Pass</h1>
+    </div>
+
+    <div class="mb-6">
+      <h2 class="text-2xl font-bold text-gray-800" id="formTitle">Welcome Back 👋</h2>
+      <p class="text-sm text-gray-500 mt-1" id="formSubtitle">Sign in to continue</p>
+    </div>
+
+    <!-- TABS -->
+    <div class="flex bg-gray-100 rounded-xl p-1 mb-6">
+      <button id="tabLogin" type="button" class="flex-1 py-2 rounded-lg text-sm font-medium bg-white shadow text-teal-700">Login</button>
+      <button id="tabRegister" type="button" class="flex-1 py-2 rounded-lg text-sm font-medium text-gray-500">Register</button>
+    </div>
+
+    <!-- LOGIN -->
+    <form id="loginForm" class="space-y-4">
+      <div>
+        <label class="text-xs text-gray-500 font-medium">Email</label>
+        <input type="email" id="loginEmail" required class="w-full border rounded-xl p-3 mt-1 text-sm focus:ring-2 focus:ring-teal-500 outline-none" placeholder="you@example.com" />
+      </div>
+      <div>
+        <label class="text-xs text-gray-500 font-medium">Password</label>
+        <input type="password" id="loginPassword" required class="w-full border rounded-xl p-3 mt-1 text-sm focus:ring-2 focus:ring-teal-500 outline-none" placeholder="••••••••" />
+      </div>
+      <button type="submit" class="w-full bg-teal-600 hover:bg-teal-700 text-white py-3 rounded-xl font-medium transition shadow-lg shadow-teal-600/20">
+        Sign In
+      </button>
+      <p id="loginError" class="text-xs text-red-500 text-center"></p>
+    </form>
+
+    <!-- REGISTER -->
+    <form id="registerForm" class="space-y-4 hidden">
+      <div>
+        <label class="text-xs text-gray-500 font-medium">Full Name</label>
+        <input type="text" id="regName" required class="w-full border rounded-xl p-3 mt-1 text-sm focus:ring-2 focus:ring-teal-500 outline-none" placeholder="Rahul Verma" />
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-xs text-gray-500 font-medium">Blood Group</label>
+          <select id="regBlood" class="w-full border rounded-xl p-3 mt-1 text-sm">
+            <option>A+</option><option>A-</option><option>B+</option><option>B-</option>
+            <option>O+</option><option>O-</option><option>AB+</option><option>AB-</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs text-gray-500 font-medium">Age</label>
+          <input type="number" id="regAge" required class="w-full border rounded-xl p-3 mt-1 text-sm" placeholder="28" />
+        </div>
+      </div>
+      <div>
+        <label class="text-xs text-gray-500 font-medium">Email</label>
+        <input type="email" id="regEmail" required class="w-full border rounded-xl p-3 mt-1 text-sm" placeholder="you@example.com" />
+      </div>
+      <div>
+        <label class="text-xs text-gray-500 font-medium">Password (min 6 chars)</label>
+        <input type="password" id="regPassword" required minlength="6" class="w-full border rounded-xl p-3 mt-1 text-sm" placeholder="••••••••" />
+      </div>
+      <button type="submit" class="w-full bg-teal-600 hover:bg-teal-700 text-white py-3 rounded-xl font-medium transition shadow-lg shadow-teal-600/20">
+        Create Account
+      </button>
+      <p id="regError" class="text-xs text-red-500 text-center"></p>
+    </form>
+  </div>
 </div>
 
-<!-- ================= মূল অ্যাপ ================= -->
-<div class="container" id="app-container" style="display:none;">
-    <div class="topbar">
-        <span style="font-size:12px; color:#7f8c8d;" id="user-email-display"></span>
-        <button onclick="doLogout()">Logout</button>
-    </div>
-    <div class="header">
-        <h3 style="margin:0">অরুণদীপ্ত Attendance</h3>
-        <small id="current-date-ui"></small>
-        <select id="subject-select" onchange="onSubjectChange()">
-            <option value="Anatomy">Anatomy</option>
-            <option value="Physiology">Physiology</option>
-            <option value="Biochemistry">Biochemistry</option>
-        </select>
-        <select id="session-select" onchange="onSubjectChange()">
-            <option value="1">Class 1 (আজকের ১ম ক্লাস)</option>
-            <option value="2">Class 2 (আজকের ২য় ক্লাস)</option>
-            <option value="3">Class 3 (আজকের ৩য় ক্লাস)</option>
-        </select>
-        <div class="progress-container"><div id="progress-bar"></div></div>
-        <div id="sync-status">সিঙ্ক করা হচ্ছে...</div>
-    </div>
-
-    <div id="mark-section">
-        <div class="card">
-            <div id="roll-display" style="color: #666;">Roll: 1</div>
-            <div id="name-display" style="font-size: 20px; font-weight: bold; margin: 10px 0;">---</div>
-        </div>
-        <div class="btn-row">
-            <button style="background: var(--danger);" onclick="mark('Absent')">ABSENT</button>
-            <button style="background: var(--success);" onclick="mark('Present')">PRESENT</button>
-        </div>
-        <button style="background: #95a5a6; margin-top:10px;" onclick="undo()">Undo</button>
-    </div>
-
-    <div id="capture-area">
-        <div class="report-header">
-            <div class="header-text">
-                <h2 id="report-subject-title">Subject Name</h2>
-                <p id="report-date">Date: ---</p>
-            </div>
-            <img src="l.jpg" alt="Batch Logo" class="logo-img" onerror="this.style.display='none'">
-        </div>
-        <h4 style="margin: 0 0 10px; color: var(--danger);">❌ Absent List</h4>
-        <div id="absent-list-output" style="min-height: 50px;">No absent yet.</div>
-        <div id="absent-count-footer" style="margin-top:12px; font-size:12px; color:#7f8c8d; text-align:right;"></div>
-    </div>
-
-    <div class="action-btns">
-        <button style="background: var(--primary);" onclick="downloadPNG()">📸 Download PNG with Logo</button>
-        <button style="background: var(--accent);" onclick="copyWhatsAppMessage()">📋 Copy WhatsApp Message</button>
-        <button style="background: #8e44ad;" onclick="openMonthlyReport()">📊 Monthly Report</button>
-    </div>
-</div>
-
-<!-- ================= মাসিক রিপোর্ট মোডাল ================= -->
-<div id="monthly-modal">
-    <div class="container">
-        <h3 style="margin-top:0;">📊 Monthly Attendance Report</h3>
-        <input type="month" id="report-month">
-        <select id="report-subject">
-            <option value="All">All Subjects (combined)</option>
-            <option value="Anatomy">Anatomy</option>
-            <option value="Physiology">Physiology</option>
-            <option value="Biochemistry">Biochemistry</option>
-        </select>
-        <button style="background: var(--accent);" onclick="generateMonthlyReport()">Generate Report</button>
-        <div id="monthly-report-result" style="margin-top:15px; overflow-x:auto;"></div>
-        <button class="close-modal-btn" style="margin-top:15px;" onclick="closeMonthlyReport()">Close</button>
-    </div>
-</div>
-
-<!-- ================= Firebase ================= -->
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
-    import {
-        getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
-    } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
-    import {
-        getFirestore, doc, setDoc, getDoc, collection, query, where, getDocs
-    } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
-
-    // তোমার Firebase প্রজেক্টের কনফিগ (attendance-c3fca)
-    const firebaseConfig = {
-        apiKey: "AIzaSyDBzp-vh6hr0Nod5CZMss37MuH80Bnt_xM",
-        authDomain: "attendance-c3fca.firebaseapp.com",
-        projectId: "attendance-c3fca",
-        storageBucket: "attendance-c3fca.firebasestorage.app",
-        messagingSenderId: "1027176148201",
-        appId: "1:1027176148201:web:144b8ee084030e93581478"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-
-    // window এ এক্সপোজ করা হলো, যাতে নিচের সাধারণ <script> ট্যাগ থেকে এগুলো ব্যবহার করা যায়
-    window._auth = auth;
-    window._db = db;
-    window._fb = { doc, setDoc, getDoc, collection, query, where, getDocs, signInWithEmailAndPassword, signOut };
-
-    onAuthStateChanged(auth, (user) => {
-        if (user) {
-            document.getElementById('login-screen').style.display = 'none';
-            document.getElementById('app-container').style.display = 'block';
-            document.getElementById('user-email-display').innerText = user.email;
-            window.onLoginSuccess();
-        } else {
-            document.getElementById('login-screen').style.display = 'block';
-            document.getElementById('app-container').style.display = 'none';
-        }
-    });
-
-    window.doLogin = function () {
-        const email = document.getElementById('login-email').value.trim();
-        const pass = document.getElementById('login-password').value;
-        const errBox = document.getElementById('login-error');
-        errBox.innerText = "";
-        signInWithEmailAndPassword(auth, email, pass).catch((err) => {
-            errBox.innerText = "লগইন ব্যর্থ: ভুল ইমেইল বা পাসওয়ার্ড";
-            console.error(err);
-        });
-    };
-
-    window.doLogout = function () {
-        signOut(auth);
-    };
-</script>
-
-<!-- ================= মূল অ্যাপ লজিক ================= -->
-<script>
-    // তোমার স্টুডেন্ট লিস্ট এখানে আগের মতোই থাকবে
-    const students = [
-    {"roll": 1, "name": "MD. KAWSER AZAM"},
-    {"roll": 2, "name": "S. B. ANURADHA"},
-    {"roll": 3, "name": "REHNUMA ISLAM"},
-    {"roll": 4, "name": "MD. ABDUR RAHIM"},
-    {"roll": 5, "name": "TAHMID UR RAHMAN"},
-    {"roll": 6, "name": "JANNATUN NAHAR"},
-    {"roll": 7, "name": "MD. SHOAIB AKHTAR"},
-    {"roll": 8, "name": "ZUYANA ALIF"},
-    {"roll": 9, "name": "MD. AL SERAFIC ZIHAD"},
-    {"roll": 10, "name": "MOST. HAMZA IFFAT NUBAH"},
-    {"roll": 11, "name": "ROJA ASKARI"},
-    {"roll": 12, "name": "MST. SIRAJAM MUNIRA"},
-    {"roll": 13, "name": "RAFID HASAN SIDDIQUI"},
-    {"roll": 14, "name": "MST. NUSRAT JAHAN NADIA"},
-    {"roll": 15, "name": "MD. ABDUR ROUF"},
-    {"roll": 16, "name": "SHAH MD. JUHAYER JARIF"},
-    {"roll": 17, "name": "SAFA MARIYA WORPA"},
-    {"roll": 18, "name": "AFIYA MUBASHIRA MAYESHA"},
-    {"roll": 19, "name": "SIDRATUL MUNTAHA MAHI"},
-    {"roll": 20, "name": "FAHIM ASHFAK ALIN"},
-    {"roll": 21, "name": "MD. MAHMUD ALAM"},
-    {"roll": 22, "name": "MD. ABDULLAH AL RAFI"},
-    {"roll": 23, "name": "S. M. TAMZID HOSSAIN PRODHAN"},
-    {"roll": 24, "name": "MAIDA ALAMGIR"},
-    {"roll": 25, "name": "TURE SINA FAIZA MOMO"},
-    {"roll": 26, "name": "MST. TONU"},
-    {"roll": 27, "name": "MST. TASNIA RASHID LISHA"},
-    {"roll": 28, "name": "MD. NAFIZ AHMMED"},
-    {"roll": 29, "name": "MD. SAZZAD AHAMED"},
-    {"roll": 30, "name": "SAMIYA JANNAT"},
-    {"roll": 31, "name": "MST. JANNATUL SAHIMA HAQUE"},
-    {"roll": 32, "name": "NAYEEMA SALEHA"},
-    {"roll": 33, "name": "MD. ALIFUL ISLAM ALIF"},
-    {"roll": 34, "name": "NAZIA ISMAIL REETU"},
-    {"roll": 35, "name": "MST. AKHI"},
-    {"roll": 36, "name": "MST. SINTHIYA AKTHER"},
-    {"roll": 37, "name": "MST. RAISHA ANJUM"},
-    {"roll": 38, "name": "FERDOUS HASAN FAHIM"},
-    {"roll": 39, "name": "ZANNATUL MAWA KHAN"},
-    {"roll": 40, "name": "TAIN NUR OMI"},
-    {"roll": 41, "name": "MD. RAFIUR ISLAM"},
-    {"roll": 42, "name": "MOST. AME KHATUN"},
-    {"roll": 43, "name": "MST. MOHONA RAHMAN"},
-    {"roll": 44, "name": "TANIA AKTER"},
-    {"roll": 45, "name": "SUMAIYA AFRIN FAIZA"},
-    {"roll": 46, "name": "KAZI KHADIJA ANAM"},
-    {"roll": 47, "name": "MD. MIZANUR RAHMAN"},
-    {"roll": 48, "name": "ADITYA CHAKMA"},
-    {"roll": 49, "name": "GALIB MAHMUD"},
-    {"roll": 50, "name": "TASNIM RAHI"},
-    {"roll": 51, "name": "SHEMONTY ISLAM SUSHOMA"},
-    {"roll": 52, "name": "NAZMUN NAHAR"},
-    {"roll": 53, "name": "TASNIM ARA SHREYOSEE"},
-    {"roll": 54, "name": "MD. ABDUR ROKIB AHMED RAK"},
-    {"roll": 55, "name": "M. A. MOSTAKIM"},
-    {"roll": 56, "name": "AYSA KHATUN"},
-    {"roll": 57, "name": "SUPARNA DAS"},
-    {"roll": 58, "name": "MIDULA MAHJABIN"},
-    {"roll": 59, "name": "MD. HEMAYETULLAH HIMU"},
-    {"roll": 60, "name": "MD. S. M. RIFAT SHAH"},
-    {"roll": 61, "name": "TANJEHE NAWRATI ROWZA"},
-    {"roll": 62, "name": "UMME SALMA"},
-    {"roll": 63, "name": "MAISHA KASHFIA ZAMAN"},
-    {"roll": 64, "name": "SHAOMA SIDDIK AKHI"},
-    {"roll": 65, "name": "SANCHITA ROY DIYA"},
-    {"roll": 66, "name": "SHAH MUNAF WASIF SIDDIQUE ANAN"},
-    {"roll": 67, "name": "MORSALINA NUPUR"},
-    {"roll": 68, "name": "AYESHA SHIDDIKA"},
-    {"roll": 69, "name": "TASNIM JAHAN MARIA"},
-    {"roll": 70, "name": "KABBO PROSAD GUPTA"},
-    {"roll": 71, "name": "MD. MUNTASIR MAHMUD MUHI"},
-    {"roll": 72, "name": "TASNIM TABASSUM TISHA"},
-    {"roll": 73, "name": "MD. TANJIMUL ISLAM"}
-]
-
-    // ============= লোকাল স্টেট =============
-    // attendanceCache: { "Anatomy_2026-07-10": { "1": "Absent", "2": "Present", ... } }
-    let attendanceCache = JSON.parse(localStorage.getItem('attendance_data_v2')) || {};
-    let currentIndex = 0;
-
-    function pad(n) { return n < 10 ? "0" + n : "" + n; }
-
-    function todayStr() {
-        const d = new Date();
-        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-    }
-
-    function getSubject() { return document.getElementById('subject-select').value; }
-    function getSession() { return document.getElementById('session-select').value; }
-
-    function getKey(subject, dateStr, session) {
-        return `${subject}_${dateStr || todayStr()}_C${session || getSession()}`;
-    }
-
-    function saveLocal() {
-        localStorage.setItem('attendance_data_v2', JSON.stringify(attendanceCache));
-    }
-
-    function setSyncStatus(text) {
-        const el = document.getElementById('sync-status');
-        if (el) el.innerText = text;
-    }
-
-    // ============= Firebase এ সেভ/লোড =============
-    async function saveToFirestore(key, subject, dateStr, session) {
-        try {
-            setSyncStatus("সিঙ্ক করা হচ্ছে...");
-            const ref = window._fb.doc(window._db, "attendance", key);
-            await window._fb.setDoc(ref, {
-                subject: subject,
-                date: dateStr,
-                session: session,
-                records: attendanceCache[key] || {},
-                updatedAt: new Date().toISOString()
-            });
-            setSyncStatus("✅ সিঙ্ক সম্পন্ন");
-        } catch (e) {
-            console.error(e);
-            setSyncStatus("⚠️ সিঙ্ক ব্যর্থ (ইন্টারনেট চেক করুন)");
-        }
-    }
-
-    async function loadFromFirestore(key) {
-        try {
-            const ref = window._fb.doc(window._db, "attendance", key);
-            const snap = await window._fb.getDoc(ref);
-            if (snap.exists()) {
-                return snap.data().records || {};
-            }
-        } catch (e) {
-            console.error(e);
-        }
-        return null;
-    }
-
-    // লগইন সফল হলে (Firebase অংশ থেকে কল হয়) আজকের সাবজেক্টের ডেটা লোড করবে
-    window.onLoginSuccess = async function () {
-        setDateDisplay();
-        await onSubjectChange();
-    };
-
-    async function onSubjectChange() {
-        const subject = getSubject();
-        const dateStr = todayStr();
-        const session = getSession();
-        const key = getKey(subject, dateStr, session);
-
-        setSyncStatus("লোড হচ্ছে...");
-        // প্রথমে লোকাল ক্যাশ থেকে দেখাও (দ্রুত), তারপর Firestore থেকে হালনাগাদ ডেটা আনো
-        if (!attendanceCache[key]) attendanceCache[key] = {};
-
-        const remote = await loadFromFirestore(key);
-        if (remote) {
-            attendanceCache[key] = remote;
-            saveLocal();
-        }
-        setSyncStatus(remote ? "✅ সিঙ্ক সম্পন্ন" : "নতুন সেশন");
-
-        // currentIndex নির্ধারণ করা হচ্ছে - যতজন এখনো মার্ক করা হয়নি তার প্রথমজন থেকে শুরু
-        currentIndex = students.findIndex(s => !(String(s.roll) in attendanceCache[key]));
-        if (currentIndex === -1) currentIndex = students.length;
-
-        updateUI();
-    }
-
-    function setDateDisplay() {
-        const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-        const dateStr = new Date().toLocaleDateString('en-US', dateOptions);
-        document.getElementById('current-date-ui').innerText = dateStr;
-        document.getElementById('report-date').innerText = "Date: " + dateStr;
-    }
-
-    function updateUI() {
-        document.getElementById('report-subject-title').innerText = getSubject() + " (Class " + getSession() + ")";
-
-        let progress = (currentIndex / students.length) * 100;
-        document.getElementById('progress-bar').style.width = progress + "%";
-
-        if (currentIndex < students.length) {
-            document.getElementById('roll-display').innerText = "Roll: " + students[currentIndex].roll;
-            document.getElementById('name-display').innerText = students[currentIndex].name;
-        } else {
-            document.getElementById('name-display').innerText = "Session Complete! ✅";
-        }
-        renderList();
-    }
-
-    function mark(status) {
-        if (currentIndex < students.length) {
-            const key = getKey(getSubject(), todayStr(), getSession());
-            attendanceCache[key][students[currentIndex].roll] = status;
-            currentIndex++;
-            saveLocal();
-            updateUI();
-            saveToFirestore(key, getSubject(), todayStr(), getSession());
-        }
-    }
-
-    function undo() {
-        if (currentIndex > 0) {
-            currentIndex--;
-            const key = getKey(getSubject(), todayStr(), getSession());
-            delete attendanceCache[key][students[currentIndex].roll];
-            saveLocal();
-            updateUI();
-            saveToFirestore(key, getSubject(), todayStr(), getSession());
-        }
-    }
-
-    function renderList() {
-        const key = getKey(getSubject(), todayStr(), getSession());
-        let list = attendanceCache[key] || {};
-        let rows = "";
-        let absentCount = 0;
-        let presentCount = 0;
-        students.forEach(s => {
-            const status = list[s.roll];
-            if (status === 'Absent') {
-                absentCount++;
-                rows += `<tr><td>${s.roll}</td><td>${s.name}</td></tr>`;
-            } else if (status === 'Present') {
-                presentCount++;
-            }
-        });
-
-        if (absentCount === 0 && presentCount === 0) {
-            document.getElementById('absent-list-output').innerHTML = "No absent yet.";
-        } else if (absentCount === 0) {
-            document.getElementById('absent-list-output').innerHTML = `<div class="all-present-msg">All Present! 🎉</div>`;
-        } else {
-            document.getElementById('absent-list-output').innerHTML =
-                `<table class="absent-table"><thead><tr><th>Roll</th><th>Name</th></tr></thead><tbody>${rows}</tbody></table>`;
-        }
-
-        const marked = absentCount + presentCount;
-        document.getElementById('absent-count-footer').innerText =
-            marked > 0 ? `মার্ক করা হয়েছে: ${marked}/${students.length} | অনুপস্থিত: ${absentCount}` : "";
-    }
-
-    function downloadPNG() {
-        html2canvas(document.getElementById("capture-area"), {
-            scale: 2,
-            backgroundColor: "#ffffff",
-            useCORS: true
-        }).then(canvas => {
-            let link = document.createElement("a");
-            link.download = `Absent_${getSubject()}_C${getSession()}_${new Date().toLocaleDateString().replace(/\//g, '-')}.png`;
-            link.href = canvas.toDataURL("image/png");
-            link.click();
-        });
-    }
-
-    function copyWhatsAppMessage() {
-        const key = getKey(getSubject(), todayStr(), getSession());
-        const list = attendanceCache[key] || {};
-        const dateStr = new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
-        let msg = `*Absent List: ${getSubject()} (Class ${getSession()})*\n*Date: ${dateStr}*\n\n`;
-        let count = 0;
-        students.forEach(s => {
-            if (list[s.roll] === 'Absent') {
-                msg += `❌ Roll ${s.roll}: ${s.name}\n`;
-                count++;
-            }
-        });
-        if (count === 0) msg += "All present today! ✅";
-        navigator.clipboard.writeText(msg);
-        alert("Copied! Now paste to WhatsApp.");
-    }
-
-    // ============= মাসিক রিপোর্ট =============
-    function openMonthlyReport() {
-        const now = new Date();
-        document.getElementById('report-month').value = `${now.getFullYear()}-${pad(now.getMonth() + 1)}`;
-        document.getElementById('monthly-report-result').innerHTML = "";
-        document.getElementById('monthly-modal').style.display = 'block';
-    }
-
-    function closeMonthlyReport() {
-        document.getElementById('monthly-modal').style.display = 'none';
-    }
-
-    async function generateMonthlyReport() {
-        const monthVal = document.getElementById('report-month').value; // "2026-07"
-        const subjectFilter = document.getElementById('report-subject').value;
-        const resultBox = document.getElementById('monthly-report-result');
-
-        if (!monthVal) { resultBox.innerHTML = "মাস নির্বাচন করুন।"; return; }
-
-        resultBox.innerHTML = "লোড হচ্ছে...";
-
-        const [y, m] = monthVal.split('-');
-        const startStr = `${y}-${m}-01`;
-        const lastDay = new Date(parseInt(y), parseInt(m), 0).getDate();
-        const endStr = `${y}-${m}-${pad(lastDay)}`;
-
-        try {
-            const q = window._fb.query(
-                window._fb.collection(window._db, "attendance"),
-                window._fb.where("date", ">=", startStr),
-                window._fb.where("date", "<=", endStr)
-            );
-            const snap = await window._fb.getDocs(q);
-
-            // student roll -> {present, absent}
-            const tally = {};
-            students.forEach(s => tally[s.roll] = { present: 0, absent: 0 });
-
-            // প্রতিটা সেশন (তারিখ + বিষয় + ক্লাস নম্বর) আলাদাভাবে সংগ্রহ করা হচ্ছে
-            const sessions = [];
-
-            snap.forEach(docSnap => {
-                const data = docSnap.data();
-                if (subjectFilter !== "All" && data.subject !== subjectFilter) return;
-
-                const records = data.records || {};
-                let sPresent = 0, sAbsent = 0;
-                const absentNames = [];
-                students.forEach(s => {
-                    const status = records[s.roll] ?? records[String(s.roll)];
-                    if (status === 'Present') { tally[s.roll].present++; sPresent++; }
-                    else if (status === 'Absent') { tally[s.roll].absent++; sAbsent++; absentNames.push(`${s.roll}-${s.name}`); }
-                });
-
-                sessions.push({
-                    date: data.date,
-                    subject: data.subject,
-                    session: data.session || 1,
-                    present: sPresent,
-                    absent: sAbsent,
-                    absentNames: absentNames
-                });
-            });
-
-            if (sessions.length === 0) {
-                resultBox.innerHTML = "এই মাসে কোনো রেকর্ড পাওয়া যায়নি।";
-                return;
-            }
-
-            // তারিখ ও ক্লাস নম্বর অনুযায়ী সাজানো
-            sessions.sort((a, b) => (a.date + a.session).localeCompare(b.date + b.session));
-
-            let html = `<p style="font-size:13px; color:#7f8c8d;">মোট সেশন: ${sessions.length} (${subjectFilter === 'All' ? 'সব বিষয়' : subjectFilter})</p>`;
-
-            // ১) তারিখ-ভিত্তিক লগ (কে কবে অনুপস্থিত ছিল)
-            html += `<h4 style="margin:15px 0 5px;">📅 তারিখ অনুযায়ী রেকর্ড</h4>`;
-            html += `<table class="report-table"><thead><tr><th>Date</th><th>Subject</th><th>Class</th><th>P</th><th>A</th><th>Absent Roll</th></tr></thead><tbody>`;
-            sessions.forEach(s => {
-                const absentStr = s.absentNames.length > 0 ? s.absentNames.map(n => n.split('-')[0]).join(', ') : '-';
-                html += `<tr><td>${s.date}</td><td>${s.subject}</td><td>${s.session}</td><td>${s.present}</td><td>${s.absent}</td><td style="text-align:left;">${absentStr}</td></tr>`;
-            });
-            html += `</tbody></table>`;
-
-            // ২) ছাত্র-ভিত্তিক মাসিক সারাংশ
-            html += `<h4 style="margin:20px 0 5px;">🧑‍🎓 ছাত্র-ভিত্তিক সারাংশ</h4>`;
-            html += `<table class="report-table"><thead><tr><th>Roll</th><th>Name</th><th>Present</th><th>Absent</th><th>%</th></tr></thead><tbody>`;
-            students.forEach(s => {
-                const t = tally[s.roll];
-                const totalMarked = t.present + t.absent;
-                const pct = totalMarked > 0 ? Math.round((t.present / totalMarked) * 100) : 0;
-                html += `<tr><td>${s.roll}</td><td>${s.name}</td><td>${t.present}</td><td>${t.absent}</td><td>${pct}%</td></tr>`;
-            });
-            html += `</tbody></table>`;
-
-            resultBox.innerHTML = html;
-        } catch (e) {
-            console.error(e);
-            resultBox.innerHTML = "রিপোর্ট আনতে সমস্যা হয়েছে। কনসোল চেক করুন (Firestore index লাগতে পারে)।";
-        }
-    }
-
-    // গ্লোবাল এক্সপোজ (onclick হ্যান্ডলারের জন্য)
-    window.mark = mark;
-    window.undo = undo;
-    window.onSubjectChange = onSubjectChange;
-    window.downloadPNG = downloadPNG;
-    window.copyWhatsAppMessage = copyWhatsAppMessage;
-    window.openMonthlyReport = openMonthlyReport;
-    window.closeMonthlyReport = closeMonthlyReport;
-    window.generateMonthlyReport = generateMonthlyReport;
-</script>
+<script type="module" src="js/auth.js"></script>
 </body>
 </html>
