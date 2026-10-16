@@ -162,4 +162,32 @@ saveBtn?.addEventListener("click", async () => {
     doctor: document.getElementById("aiDoctor").value,
     diagnosis: document.getElementById("aiDiagnosis").value,
     medications: medsText,
-    doctorNotes: document.getElementById("ai
+    doctorNotes: document.getElementById("aiNotes").value,
+    savedAt: new Date().toISOString(),
+    source: "AI Scanner"
+  };
+
+  // Parse medications into structured array for reminder
+  const parsedMeds = medsText.split("\n").filter(Boolean).map(line => {
+    const [name, dosage, frequency, duration] = line.split("|").map(s => s.trim());
+    return { name, dosage, frequency, duration, taken: false };
+  });
+
+  try {
+    await updateDoc(doc(db, "users", auth.currentUser.uid), {
+      medicalHistory: arrayUnion(record),
+      medications: arrayUnion(...parsedMeds)
+    });
+
+    statusBox.innerText = "✅ Saved to Health Card!";
+
+    // Reload page data after 1s
+    setTimeout(() => {
+      window.location.reload();
+    }, 1200);
+
+  } catch (e) {
+    statusBox.innerText = "❌ " + e.message;
+    saveBtn.disabled = false;
+  }
+});
