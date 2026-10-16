@@ -1,0 +1,47 @@
+/* Smart Health Pass — Custom Styles */
+body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; }
+
+/* Tabs */
+.tab-btn {
+  padding: 14px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
+  border-bottom: 3px solid transparent;
+  white-space: nowrap;
+  transition: all 0.2s;
+  cursor: pointer;
+  background: transparent;
+}
+.tab-btn:hover { color: #0d9488; }
+.tab-btn.active {
+  color: #0f766e;
+  border-bottom-color: #0d9488;
+  font-weight: 600;
+}
+
+/* Gradient */
+.medical-gradient {
+  background: linear-gradient(145deg, #f0fdfa 0%, #ffffff 100%);
+}
+
+/* Bed cards */
+.bed-card {
+  padding: 12px;
+  border-radius: 12px;
+  transition: transform 0.15s;
+}
+.bed-card:hover { transform: translateY(-2px); }
+.bed-stable      { background:#d1fae5; border-left:5px solid #10b981; }
+.bed-observation { background:#fef9c3; border-left:5px solid #eab308; }
+.bed-critical    { background:#fee2e2; border-left:5px solid #ef4444; }
+
+/* Scrollbars */
+#historyList::-webkit-scrollbar,
+.bg-slate-50::-webkit-scrollbar { width: 6px; }
+#historyList::-webkit-scrollbar-thumb,
+.bg-slate-50::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius:3px; }
+
+/* Hide tab scrollbar on mobile */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
