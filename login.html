@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#006a4e" />
+<title>Login · IHMS</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="min-h-screen bg-gradient-to-br from-green-50 via-white to-red-50 flex items-center justify-center p-3">
+
+<div class="w-full max-w-md">
+  <div class="text-center mb-6">
+    <a href="index.html" class="inline-flex items-center gap-2">
+      <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[#006a4e] to-[#00875a] flex items-center justify-center text-white text-xl font-bold shadow-md">⚕️</div>
+    </a>
+    <h1 class="text-2xl font-bold text-gray-800 mt-3">Welcome Back</h1>
+    <p class="text-sm text-gray-500 mt-1">Login to your IHMS account</p>
+  </div>
+
+  <div class="bg-white rounded-3xl shadow-xl border border-gray-100 p-6">
+
+    <!-- ROLE SELECTOR -->
+    <label class="text-xs font-medium text-gray-500">Login as</label>
+    <div class="grid grid-cols-3 gap-2 mt-2 mb-5" id="roleGrid">
+      <button type="button" data-role="patient" class="role-pill active">👤 Patient</button>
+      <button type="button" data-role="doctor" class="role-pill">🩺 Doctor</button>
+      <button type="button" data-role="hospital" class="role-pill">🏥 Hospital</button>
+      <button type="button" data-role="nurse" class="role-pill">👩‍⚕️ Nurse</button>
+      <button type="button" data-role="pharmacy" class="role-pill">💊 Pharmacy</button>
+      <button type="button" data-role="authority" class="role-pill">🏛️ Authority</button>
+    </div>
+
+    <form id="loginForm" class="space-y-4">
+      <div>
+        <label class="text-xs font-medium text-gray-500">Email</label>
+        <input type="email" id="loginEmail" required
+          class="w-full border border-gray-200 rounded-xl p-3 mt-1 text-sm focus:ring-2 focus:ring-[#006a4e] focus:border-transparent outline-none"
+          placeholder="you@example.com" />
+      </div>
+      <div>
+        <label class="text-xs font-medium text-gray-500">Password</label>
+        <input type="password" id="loginPassword" required
+          class="w-full border border-gray-200 rounded-xl p-3 mt-1 text-sm focus:ring-2 focus:ring-[#006a4e] focus:border-transparent outline-none"
+          placeholder="••••••••" />
+      </div>
+      <button type="submit" id="loginBtn"
+        class="w-full bg-[#006a4e] hover:bg-[#005a42] text-white py-3 rounded-xl font-medium transition shadow-lg shadow-green-900/10 disabled:opacity-50">
+        Sign In
+      </button>
+      <p id="loginError" class="text-xs text-red-500 text-center min-h-[16px]"></p>
+    </form>
+
+    <div class="mt-5 text-center text-sm text-gray-500">
+      New patient? <a href="register.html" class="text-[#006a4e] font-medium hover:underline">Create account</a>
+    </div>
+  </div>
+
+  <p class="text-center text-xs text-gray-400 mt-4">© 2025 IHMS · Nilphamari Medical College</p>
+</div>
+
+<script type="module" src="js/auth.js"></script>
+</body>
+</html>
