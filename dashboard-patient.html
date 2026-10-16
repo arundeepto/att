@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#006a4e" />
+<title>Patient Dashboard · IHMS</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="min-h-screen bg-slate-50 pb-20">
+
+<!-- NAVBAR -->
+<nav class="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm">
+  <div class="max-w-7xl mx-auto px-4 flex items-center justify-between h-16">
+    <div class="flex items-center gap-2">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-[#006a4e] to-[#00875a] flex items-center justify-center text-white text-lg font-bold shadow">⚕️</div>
+      <div>
+        <h1 class="font-bold text-gray-800 text-sm leading-tight">IHMS</h1>
+        <p class="text-[9px] text-gray-400 tracking-widest">PATIENT PORTAL</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+      <button id="emergencyBtn" class="emergency-pulse text-xs md:text-sm bg-red-500 hover:bg-red-600 text-white px-3 md:px-4 py-2 rounded-lg font-medium">
+        🚨 SOS
+      </button>
+      <button id="logoutBtn" class="text-xs md:text-sm px-3 md:px-4 py-2 rounded-lg border border-gray-200 hover:bg-gray-50">Logout</button>
+    </div>
+  </div>
+</nav>
+
+<!-- TAB NAVIGATION -->
+<div class="bg-white border-b border-gray-200 sticky top-16 z-30">
+  <div class="max-w-7xl mx-auto px-2 md:px-4 flex gap-1 overflow-x-auto no-scrollbar">
+    <button data-tab="home" class="tab-btn active">🏠 Home</button>
+    <button data-tab="scanner" class="tab-btn">🤖 AI Scan</button>
+    <button data-tab="history" class="tab-btn">📋 History</button>
+    <button data-tab="meds" class="tab-btn">💊 Medications</button>
+    <button data-tab="vaccine" class="tab-btn">💉 Vaccines</button>
+    <button data-tab="prenatal" class="tab-btn">🤰 Prenatal</button>
+  </div>
+</div>
+
+<main class="max-w-7xl mx-auto p-3 md:p-6">
+
+  <!-- ========== TAB 1: HOME ========== -->
+  <section id="tab-home" class="tab-panel">
+    <div class="grid lg:grid-cols-3 gap-4 md:gap-6">
+
+      <!-- Digital Health Pass -->
+      <div class="lg:col-span-1 bg-white rounded-2xl shadow-sm border border-gray-100 p-5 medical-gradient">
+        <div class="flex justify-between items-start mb-4">
+          <h2 class="font-semibold text-gray-800">Digital Health Pass</h2>
+          <span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Active</span>
+        </div>
+        <div class="flex items-center gap-4">
+          <canvas id="qrCanvas" class="rounded-xl"></canvas>
+          <div>
+            <p class="text-[10px] text-gray-400">HEALTH ID</p>
+            <p id="healthIdText" class="font-mono font-bold text-[#006a4e] text-sm">—</p>
+            <p class="text-xs mt-2">Blood: <b id="bloodText">—</b></p>
+            <p class="text-xs">Age: <b id="ageText">—</b></p>
+            <p class="text-xs">Gender: <b id="genderText">—</b></p>
+          </div>
+        </div>
+        <button id="downloadQRBtn" class="mt-4 w-full bg-[#006a4e] hover:bg-[#005a42] text-white py-2 rounded-xl text-xs font-medium">
+          ⬇️ Download QR
+        </button>
+      </div>
+
+      <!-- Quick Stats -->
+      <div class="lg:col-span-2 grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+          <div class="text-2xl mb-1">📋</div>
+          <p class="text-2xl font-bold text-gray-800" id="statPrescriptions">0</p>
+          <p class="text-xs text-gray-500">Prescriptions</p>
+        </div>
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+          <div class="text-2xl mb-1">💊</div>
+          <p class="text-2xl font-bold text-gray-800" id="statMeds">0</p>
+          <p class="text-xs text-gray-500">Active Meds</p>
+        </div>
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+          <div class="text-2xl mb-1">💉</div>
+          <p class="text-2xl font-bold text-gray-800" id="statVaccines">0</p>
+          <p class="text-xs text-gray-500">Vaccines</p>
+        </div>
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+          <div class="text-2xl mb-1">📅</div>
+          <p class="text-2xl font-bold text-gray-800" id="statAppts">0</p>
+          <p class="text-xs text-gray-500">Appointments</p>
+        </div>
+      </div>
+
+      <!-- Recent History -->
+      <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+        <div class="flex justify-between items-center mb-3">
+          <h2 class="font-semibold text-gray-800">📋 Recent Prescriptions</h2>
+          <button class="text-xs text-[#006a4e] font-medium" onclick="document.querySelector('[data-tab=history]').click()">View all →</button>
+        </div>
+        <div id="recentHistoryList" class="space-y-2 max-h-72 overflow-y-auto pr-1">
+          <p class="text-sm text-gray-400">Loading...</p>
+        </div>
+      </div>
+
+      <!-- Nurse Call Card -->
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+        <h2 class="font-semibold text-gray-800 mb-3">🚨 Emergency / Nurse Call</h2>
+        <p class="text-xs text-gray-500 mb-3">Press for instant nurse assistance</p>
+        <button id="nurseCallBtn" class="w-full bg-red-500 hover:bg-red-600 text-white py-4 rounded-2xl font-semibold text-lg shadow-lg shadow-red-500/20 transition">
+          🔔 CALL NURSE
+        </button>
+        <div id="nurseCallStatus" class="mt-3 text-xs text-center text-gray-500">
+          Not called yet
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== TAB 2: AI SCANNER ========== -->
+  <section id="tab-scanner" class="tab-panel hidden">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+      <div class="flex flex-wrap justify-between items-center mb-5 gap-2">
+        <h2 class="text-lg md:text-xl font-bold text-gray-800">🤖 AI Prescription Scanner</h2>
+        <span class="text-[10px] md:text-xs bg-gradient-to-r from-purple-100 to-blue-100 text-purple-700 px-3 py-1 rounded-full font-medium">Gemini Vision</span>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-5">
+        <div>
+          <div id="dropZone" class="border-2 border-dashed border-[#006a4e]/40 bg-green-50/40 rounded-2xl p-6 text-center cursor-pointer hover:bg-green-50 transition">
+            <svg class="w-12 h-12 mx-auto text-[#006a4e]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+            <p class="mt-3 text-sm text-gray-600 font-medium">Tap or drop prescription image</p>
+            <p class="text-xs text-gray-400 mt-1">JPG, PNG — max 5MB</p>
+            <input type="file" id="fileInput" accept="image/*" class="hidden" />
+          </div>
+          <div id="previewBox" class="hidden mt-4">
+            <img id="previewImg" class="max-h-48 rounded-xl border shadow-sm mx-auto" />
+          </div>
+          <button id="scanBtn" class="mt-4 w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-xl font-medium shadow-lg disabled:opacity-50">
+            ⚡ Extract with AI
+          </button>
+          <p id="scanStatus" class="text-xs text-gray-500 mt-2 text-center"></p>
+        </div>
+
+        <div>
+          <h3 class="font-semibold text-gray-700 mb-3">📄 Extracted Data (editable)</h3>
+          <div class="bg-slate-50 p-4 rounded-xl border space-y-3 text-sm max-h-[420px] overflow-y-auto">
+            <div><label class="text-xs text-gray-500">Patient Name</label><input id="aiName" class="w-full border rounded-lg p-2 mt-1" /></div>
+            <div><label class="text-xs text-gray-500">Date</label><input id="aiDate" type="date" class="w-full border rounded-lg p-2 mt-1" /></div>
+            <div><label class="text-xs text-gray-500">Doctor Name</label><input id="aiDoctor" class="w-full border rounded-lg p-2 mt-1" /></div>
+            <div><label class="text-xs text-gray-500">Diagnosis</label><input id="aiDiagnosis" class="w-full border rounded-lg p-2 mt-1" /></div>
+            <div>
+              <label class="text-xs text-gray-500">Medications (name | dosage | freq | duration)</label>
+              <textarea id="aiMeds" rows="3" class="w-full border rounded-lg p-2 mt-1 font-mono text-xs"></textarea>
+            </div>
+            <div><label class="text-xs text-gray-500">Doctor's Notes</label><textarea id="aiNotes" rows="2" class="w-full border rounded-lg p-2 mt-1"></textarea></div>
+          </div>
+          <button id="saveBtn" class="mt-4 w-full bg-[#006a4e] hover:bg-[#005a42] text-white py-3 rounded-xl font-medium shadow-lg disabled:opacity-50">
+            💾 Save to Health Card
+          </button>
+          <p id="saveStatus" class="text-xs text-green-700 mt-2 text-center"></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== TAB 3: HISTORY ========== -->
+  <section id="tab-history" class="tab-panel hidden">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+      <h2 class="text-lg md:text-xl font-bold text-gray-800 mb-4">📋 Complete Medical History</h2>
+      <div id="fullHistoryList" class="space-y-3">
+        <p class="text-sm text-gray-400">Loading...</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== TAB 4: MEDICATIONS ========== -->
+  <section id="tab-meds" class="tab-panel hidden">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+      <h2 class="text-lg md:text-xl font-bold text-gray-800 mb-4">💊 Active Medications & Reminders</h2>
+      <div id="medsList" class="space-y-3">
+        <p class="text-sm text-gray-400">No active medications</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== TAB 5: VACCINES ========== -->
+  <section id="tab-vaccine" class="tab-panel hidden">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+      <h2 class="text-lg md:text-xl font-bold text-gray-800 mb-4">💉 Vaccination Record</h2>
+      <div id="vaccineList" class="space-y-3">
+        <p class="text-sm text-gray-400">No vaccination records yet</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== TAB 6: PRENATAL ========== -->
+  <section id="tab-prenatal" class="tab-panel hidden">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+      <h2 class="text-lg md:text-xl font-bold text-gray-800 mb-2">🤰 Prenatal Care Guide</h2>
+      <p class="text-sm text-gray-500 mb-5">Important tips for a healthy pregnancy</p>
+
+      <div class="grid md:grid-cols-2 gap-4">
+        <div class="bg-green-50 border border-green-100 rounded-2xl p-4">
+          <h3 class="font-semibold text-green-900 mb-2">✅ Do's</h3>
+          <ul class="text-sm text-green-800 space-y-1.5 list-disc list-inside">
+            <li>Take folic acid daily (as prescribed)</li>
+            <li>Attend all ANC checkups</li>
+            <li>Drink 8–10 glasses of water daily</li>
+            <li>Eat iron & calcium rich food</li>
+            <li>Get 8 hours of sleep</li>
+            <li>Light walking daily</li>
+          </ul>
+        </div>
+        <div class="bg-red-50 border border-red-100 rounded-2xl p-4">
+          <h3 class="font-semibold text-red-900 mb-2">❌ Don'ts</h3>
+          <ul class="text-sm text-red-800 space-y-1.5 list-disc list-inside">
+            <li>Avoid alcohol & smoking</li>
+            <li>Don't skip meals</li>
+            <li>Avoid raw/undercooked meat</li>
+            <li>Don't lift heavy objects</li>
+            <li>Avoid self-medication</li>
+            <li>Don't ignore bleeding/pain</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="mt-5 bg-yellow-50 border border-yellow-100 rounded-2xl p-4">
+        <h3 class="font-semibold text-yellow-900 mb-2">🚨 Emergency Signs — Go to hospital immediately</h3>
+        <ul class="text-sm text-yellow-800 space-y-1 list-disc list-inside">
+          <li>Severe headache or blurred vision</li>
+          <li>Heavy vaginal bleeding</li>
+          <li>Severe abdominal pain</li>
+          <li>No baby movement for hours</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script type="module" src="js/patient.js"></script>
+<script type="module" src="js/ai-scanner.js"></script>
+</body>
+</html>
