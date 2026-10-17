@@ -82,7 +82,7 @@ scanBtn?.addEventListener("click", async () => {
 });
 
 // =========================================================
-// GEMINI VISION API CALL
+// GEMINI VISION API CALL (Bearer Token Updated)
 // =========================================================
 async function callGeminiVision(base64) {
   const prompt = `You are a medical prescription data extractor for a Bangladeshi hospital system.
@@ -98,9 +98,12 @@ Analyze this prescription image and return ONLY valid JSON with this exact struc
 Do NOT include markdown, code blocks, or explanations. Only raw JSON.
 If any field is not visible, use empty string "".`;
 
-  const res = await fetch(`${GEMINI_ENDPOINT}?key=${GEMINI_API_KEY}`, {
+  const res = await fetch(GEMINI_ENDPOINT, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { 
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${GEMINI_API_KEY}`
+    },
     body: JSON.stringify({
       contents: [{
         parts: [
@@ -162,7 +165,7 @@ saveBtn?.addEventListener("click", async () => {
   const record = {
     patientName: document.getElementById("aiName").value,
     date: document.getElementById("aiDate").value,
-    doctor: document.getElementById("aiDoctor").value, // ঠিক করা হয়েছে
+    doctor: document.getElementById("aiDoctor").value,
     diagnosis: document.getElementById("aiDiagnosis").value,
     medications: medsText,
     doctorNotes: document.getElementById("aiNotes").value,
@@ -191,7 +194,6 @@ saveBtn?.addEventListener("click", async () => {
 
   } catch (e) {
     statusBox.innerText = "❌ " + e.message;
-    saveBtn.disabled.value = false; // ঠিক করা হয়েছে
     saveBtn.disabled = false;
   }
 });
