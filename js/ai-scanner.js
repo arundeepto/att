@@ -82,7 +82,7 @@ scanBtn?.addEventListener("click", async () => {
 });
 
 // =========================================================
-// GEMINI VISION API CALL (Updated & Fixed)
+// GEMINI VISION API CALL
 // =========================================================
 async function callGeminiVision(base64) {
   const prompt = `You are a medical prescription data extractor for a Bangladeshi hospital system.
@@ -117,7 +117,6 @@ If any field is not visible, use empty string "".`;
 
   const data = await res.json();
 
-  // যদি API থেকে কোনো এরর আসে তা সুন্দরভাবে ধরার জন্য
   if (!res.ok) {
     throw new Error(data.error?.message || "Vision API error status: " + res.status);
   }
@@ -163,7 +162,7 @@ saveBtn?.addEventListener("click", async () => {
   const record = {
     patientName: document.getElementById("aiName").value,
     date: document.getElementById("aiDate").value,
-    doctor: document.getElementById("aiDoctor".value),
+    doctor: document.getElementById("aiDoctor").value, // ঠিক করা হয়েছে
     diagnosis: document.getElementById("aiDiagnosis").value,
     medications: medsText,
     doctorNotes: document.getElementById("aiNotes").value,
@@ -192,6 +191,7 @@ saveBtn?.addEventListener("click", async () => {
 
   } catch (e) {
     statusBox.innerText = "❌ " + e.message;
+    saveBtn.disabled.value = false; // ঠিক করা হয়েছে
     saveBtn.disabled = false;
   }
 });
