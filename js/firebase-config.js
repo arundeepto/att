@@ -2,23 +2,22 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/fireba
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
+// 🌟 Firebase AI Logic Import
+import { getAI, GoogleAIBackend } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-ai.js";
+
 const firebaseConfig = {
-    apiKey: "AIzaSyAewLllHLC5IBces1RCzfxZ4k19k3dU_Lw",
-    authDomain: "healthcare-f59c5.firebaseapp.com",
-    projectId: "healthcare-f59c5",
-    storageBucket: "healthcare-f59c5.firebasestorage.app",
-    messagingSenderId: "335899809673",
-    appId: "1:335899809673:web:d395f1a579bcec2b12f358"
-  };
+  apiKey: "AIzaSyAewLllHLC5IBces1RCzfxZ4k19k3dU_Lw",
+  authDomain: "healthcare-f59c5.firebaseapp.com",
+  projectId: "healthcare-f59c5",
+  storageBucket: "healthcare-f59c5.firebasestorage.app",
+  messagingSenderId: "335899809673",
+  appId: "1:335899809673:web:d395f1a579bcec2b12f358"
+};
 
-// Gemini API Key
-
-// 🔧 এখানে তোমার নতুন AIzaSy... দিয়ে শুরু হওয়া Key টা বসাও
-// 🔧 OpenRouter API Key
-export const OPENROUTER_API_KEY = "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";
-export const OPENROUTER_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
-
-
+// Initialize Firebase
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+
+// 🌟 AI Logic Initialize (এখানে কোনো API Key লাগে না)
+export const ai = getAI(app, { backend: new GoogleAIBackend() });
