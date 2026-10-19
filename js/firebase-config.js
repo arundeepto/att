@@ -12,7 +12,14 @@ const firebaseConfig = {
   };
 
 // Gemini API Key
-export const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+
+// 🔧 এখানে তোমার নতুন AIzaSy... দিয়ে শুরু হওয়া Key টা বসাও
+export const GEMINI_API_KEY = "AQ.Ab8RN6JNi2NC72gglTS9ybV7dipDnvY9ES64QPpqtR2sWtx8Wg";
+
+// 🔧 নতুন আপডেট করা মডেল
+export const GEMINI_ENDPOINT = 
+  "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
+
 
 
 export const app = initializeApp(firebaseConfig);
