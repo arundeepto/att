@@ -1,5 +1,4 @@
-// js/ai-scanner.js
-import { auth, db, GEMINI_API_KEY } from "./firebase-config.js"; // OPENROUTER_API_KEY এর জায়গায় GEMINI_API_KEY ইমপোর্ট করুন
+import { auth, db, GEMINI_API_KEY } from "./firebase-config.js";
 import {
   doc, updateDoc, arrayUnion, getDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -106,14 +105,12 @@ scanBtn?.addEventListener("click", async () => {
 });
 
 // =========================================================
-// GEMINI API CALL (Official REST API)
+// GEMINI REST API CALL (Endpoint Setup)
 // =========================================================
 async function callGeminiAPI(base64) {
-  // নিশ্চিত করুন firebase-config.js ফাইলে GEMINI_API_KEY এক্সপোর্ট করা আছে
-  if (!window.GEMINI_API_KEY && typeof GEMINI_API_KEY === 'undefined') {
+  if (!GEMINI_API_KEY) {
     throw new Error("Gemini API Key is missing");
   }
-  const apiKey = typeof GEMINI_API_KEY !== 'undefined' ? GEMINI_API_KEY : window.GEMINI_API_KEY;
 
   const prompt = `You are a medical prescription data extractor. Analyze this prescription image and extract the information.
 
@@ -137,12 +134,13 @@ Return ONLY valid JSON matching this exact structure:
 IMPORTANT:
 - Do NOT include patient name.
 - If a section is not visible, return empty array [] or empty string "".
-- Return ONLY raw JSON. No markdown formatting or code blocks.`;
+- Return ONLY raw JSON. No markdown syntax like \`\`\`json.`;
 
-  // Gemini 2.5 Flash বা 1.5 Flash মডেল ব্যবহার করা হলো
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey.trim()}`;
+  // এখানে gemini-2.5-flash মডেল ব্যবহার করা হয়েছে
+  const modelName = "gemini-2.5-flash"; 
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${GEMINI_API_KEY.trim()}`;
 
-  const response = await fetch(url, {
+  const response = await fetch(endpoint, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
@@ -172,12 +170,12 @@ IMPORTANT:
   const data = await response.json();
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
-  if (!text) throw new Error("Empty response from AI");
+  if (!text) throw new Error("Empty response from Gemini API");
 
-  // ক্লিন করার জন্য যদি Markdown কোড ব্লক (```json ... ```) থাকে তা সরিয়ে ফেলা
+  // Cleaning markdown code blocks if present
   let cleanText = text.trim();
   if (cleanText.startsWith("```")) {
-    cleanText = cleanText.replace(/^```(json)?/, "").replace(/```$/, "").trim();
+    cleanText = cleanText.replace(/^```(json)?/i, "").replace(/```$/, "").trim();
   }
 
   try {
