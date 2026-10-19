@@ -16,7 +16,7 @@ let base64Image = null;
 let currentMimeType = "image/jpeg";
 
 // =========================================================
-// UPLOAD
+// UPLOAD & IMAGE HANDLING
 // =========================================================
 dropZone?.addEventListener("click", () => fileInput?.click());
 dropZone?.addEventListener("dragover", e => e.preventDefault());
@@ -33,23 +33,55 @@ function handleFile(file) {
     alert("Only image files allowed");
     return;
   }
-  if (file.size > 5 * 1024 * 1024) {
-    alert("Max file size 5MB");
+  if (file.size > 10 * 1024 * 1024) {
+    alert("Max file size 10MB");
     return;
   }
-  currentMimeType = file.type;
+  
+  currentMimeType = "image/jpeg"; // Standardizing to jpeg for Groq compatibility
   const reader = new FileReader();
+  
   reader.onload = ev => {
-    if (previewImg) previewImg.src = ev.target.result;
-    if (previewBox) previewBox.classList.remove("hidden");
-    base64Image = ev.target.result.split(",")[1];
-    if (scanStatus) scanStatus.innerText = "✅ Image ready";
+    const img = new Image();
+    img.onload = () => {
+      // Mobile Image Resizing to prevent Groq 400 Payload Too Large Error
+      const canvas = document.createElement("canvas");
+      let width = img.width;
+      let height = img.height;
+      const maxDim = 1200;
+
+      if (width > maxDim || height > maxDim) {
+        if (width > height) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        } else {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, width, height);
+
+      const resizedDataUrl = canvas.toDataURL("image/jpeg", 0.85);
+      if (previewImg) previewImg.src = resizedDataUrl;
+      if (previewBox) previewBox.classList.remove("hidden");
+      
+      base64Image = resizedDataUrl.split(",")[1];
+      if (scanStatus) {
+        scanStatus.innerText = "✅ Image ready for scanning";
+        scanStatus.className = "text-xs text-green-600 mt-2 text-center";
+      }
+    };
+    img.src = ev.target.result;
   };
   reader.readAsDataURL(file);
 }
 
 // =========================================================
-// AI EXTRACT (Groq Vision)
+// AI EXTRACT
 // =========================================================
 scanBtn?.addEventListener("click", async () => {
   if (!base64Image) {
@@ -58,16 +90,15 @@ scanBtn?.addEventListener("click", async () => {
   }
   scanBtn.disabled = true;
   if (scanStatus) {
-    scanStatus.innerText = "🤖 AI analyzing prescription via Groq...";
+    scanStatus.innerText = "🤖 AI analyzing prescription...";
     scanStatus.className = "text-xs text-gray-500 mt-2 text-center";
   }
 
   try {
     const extracted = await callGroqVision(base64Image);
 
-    // Validate response — must have at least diagnosis or medications
     if (!extracted.diagnosis && (!extracted.medications || extracted.medications.length === 0)) {
-      throw new Error("AI could not read prescription. Please try a clearer image.");
+      throw new Error("Could not read prescription. Try a clearer image.");
     }
 
     fillForm(extracted);
@@ -76,7 +107,6 @@ scanBtn?.addEventListener("click", async () => {
       scanStatus.className = "text-xs text-green-600 mt-2 text-center font-medium";
     }
   } catch (err) {
-    console.error("AI error:", err);
     if (scanStatus) {
       scanStatus.innerText = "❌ " + (err.message || "Failed to read prescription");
       scanStatus.className = "text-xs text-red-600 mt-2 text-center";
@@ -92,7 +122,7 @@ scanBtn?.addEventListener("click", async () => {
 async function callGroqVision(base64) {
   const prompt = `You are a medical prescription data extractor. Analyze this prescription image and extract the information.
 
-Return ONLY valid JSON matching this exact schema:
+Return JSON with this EXACT structure:
 {
   "date": "YYYY-MM-DD",
   "doctorName": "string",
@@ -110,21 +140,24 @@ Return ONLY valid JSON matching this exact schema:
 }
 
 IMPORTANT:
-- Do NOT include patient name (the scanning user IS the patient).
-- pastHistory = any PAST illnesses, diseases, surgeries mentioned in the prescription.
+- Do NOT include patient name.
+- pastHistory = any PAST illnesses, diseases, surgeries mentioned.
 - drugHistory = any DRUG ALLERGIES or adverse reactions mentioned.
 - If a section is not visible, return empty array [] or empty string "".
-- Frequencies like "1-0-1" mean morning-noon-night.
-- Output pure JSON only.`;
+- Return ONLY valid raw JSON.`;
+
+  const cleanApiKey = GROQ_API_KEY.trim().toLowerCase().startsWith("gsk_") 
+    ? "gsk_" + GROQ_API_KEY.trim().slice(4) 
+    : GROQ_API_KEY.trim();
 
   const res = await fetch(GROQ_ENDPOINT, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${GROQ_API_KEY}`
+      "Authorization": `Bearer ${cleanApiKey}`
     },
     body: JSON.stringify({
-      model: "llama-3.2-90b-vision-preview", // Groq-এর সেরা Vision মডেল
+      model: "llama-3.2-11b-vision-preview",
       messages: [
         {
           role: "user",
@@ -133,38 +166,39 @@ IMPORTANT:
             {
               type: "image_url",
               image_url: {
-                url: `data:${currentMimeType};base64,${base64}`
+                url: `data:image/jpeg;base64,${base64}`
               }
             }
           ]
         }
       ],
       temperature: 0.1,
-      response_format: { type: "json_object" } // নিশ্চিত ১০০% সঠিক JSON আউটপুট
+      max_tokens: 1024,
+      response_format: { type: "json_object" }
     })
   });
 
   if (!res.ok) {
-    const errText = await res.text();
-    console.error("Groq API error response:", errText);
-
-    if (res.status === 401) throw new Error("Invalid Groq API Key. Check firebase-config.js.");
-    if (res.status === 429) throw new Error("Rate limit exceeded. Try again in a minute.");
-    throw new Error(`Groq API error ${res.status}`);
+    if (res.status === 401) throw new Error("Invalid Groq API Key.");
+    if (res.status === 400) throw new Error("Image error. Try taking a photo closer.");
+    if (res.status === 429) throw new Error("Server busy. Please wait 30 seconds.");
+    throw new Error(`Server Error (${res.status})`);
   }
 
   const data = await res.json();
   const text = data?.choices?.[0]?.message?.content || "";
 
-  console.log("Raw AI response:", text);
-
-  if (!text) throw new Error("Empty AI response");
+  if (!text) throw new Error("Empty response from AI");
 
   try {
     return JSON.parse(text);
   } catch (e) {
-    console.error("JSON parse error:", text);
-    throw new Error("AI returned malformed data. Try again.");
+    const start = text.indexOf("{");
+    const end = text.lastIndexOf("}") + 1;
+    if (start !== -1 && end > start) {
+      return JSON.parse(text.slice(start, end));
+    }
+    throw new Error("Invalid data format returned by AI.");
   }
 }
 
@@ -200,7 +234,7 @@ function fillForm(d) {
 }
 
 // =========================================================
-// SAVE (Self / Auto Profile Name)
+// SAVE TO FIRESTORE
 // =========================================================
 saveBtn?.addEventListener("click", async () => {
   if (!auth.currentUser) {
@@ -255,7 +289,6 @@ saveBtn?.addEventListener("click", async () => {
       return { drug: drug || "", reaction: reaction || "", severity: severity || "", addedAt: new Date().toISOString() };
     });
 
-    // Firestore Update Payload (খালি array এরর রোধের জন্য)
     const updatePayload = {
       medicalHistory: arrayUnion(record)
     };
@@ -273,7 +306,6 @@ saveBtn?.addEventListener("click", async () => {
     setTimeout(() => window.location.reload(), 1200);
 
   } catch (e) {
-    console.error("Save error:", e);
     if (statusBox) {
       statusBox.innerText = "❌ " + e.message;
       statusBox.className = "text-xs text-red-600 mt-2 text-center";
