@@ -15,7 +15,7 @@ const scanStatus = document.getElementById("scanStatus");
 let base64Image = null;
 
 // =========================================================
-// 1. IMAGE UPLOAD
+// 1. IMAGE UPLOAD HANDLER
 // =========================================================
 dropZone?.addEventListener("click", () => fileInput.click());
 dropZone?.addEventListener("dragover", e => e.preventDefault());
@@ -49,7 +49,7 @@ function handleFile(file) {
 }
 
 // =========================================================
-// 2. AI EXTRACT (OpenRouter Manual Fallback)
+// 2. AI EXTRACT (OpenRouter with Live Free Vision Models)
 // =========================================================
 scanBtn?.addEventListener("click", async () => {
   if (!base64Image) {
@@ -87,14 +87,17 @@ Return ONLY the JSON object, nothing else.`;
       }
     ];
 
-    // 🌟 OpenRouter API Key (তোমার আগের key টা এখানে বসাও)
+    // 🌟 তোমার OpenRouter API Key (আগেরটা)
     const OPENROUTER_API_KEY = "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"; 
 
+    // 🌟 বর্তমানে লাইভ থাকা ফ্রি ভিশন মডেলের লিস্ট
     const modelList = [
-      "google/gemma-3-12b-it:free",
-      "google/gemma-3-27b-it:free",
+      "google/gemma-4-26b-a4b-it:free",
+      "google/gemma-4-31b-it:free",
       "nvidia/nemotron-nano-12b-v2-vl:free",
-      "meta-llama/llama-3.2-11b-vision-instruct:free"
+      "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+      "allenai/molmo-2-8b:free",
+      "nvidia/nemotron-3.5-super-vl:free"
     ];
 
     let lastError = "No models available";
