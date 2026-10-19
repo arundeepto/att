@@ -1,5 +1,5 @@
 // js/ai-scanner.js
-import { auth, db, GEMINI_API_KEY, GEMINI_ENDPOINT } from "./firebase-config.js";
+import { auth, db, GEMINI_API_KEY } from "./firebase-config.js";
 import {
   doc, updateDoc, arrayUnion, getDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -79,6 +79,8 @@ scanBtn?.addEventListener("click", async () => {
     if (scanStatus) {
       scanStatus.innerText = "❌ " + (err.message || "Failed to read prescription");
       scanStatus.className = "text-xs text-red-600 mt-2 text-center";
+      scanStatus.style.whiteSpace = "pre-wrap";
+      scanStatus.style.wordBreak = "break-word";
     }
   } finally {
     scanBtn.disabled = false;
@@ -88,6 +90,10 @@ scanBtn?.addEventListener("click", async () => {
 // =========================================================
 // GEMINI VISION API CALL
 // =========================================================
+const API_BASE = "https://generativelanguage.googleapis.com/v1beta/models/";
+// একটা না চললে পরেরটা নিজে থেকেই চেষ্টা করবে
+const MODELS = ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-2.5-flash"];
+
 async function callGeminiVision(base64) {
   const prompt = `You are a medical prescription data extractor. Analyze this prescription image and extract the information.
 
@@ -115,52 +121,78 @@ IMPORTANT:
 - If a section is not visible, return empty array [] or empty string "".
 - Frequencies like "1-0-1" mean morning-noon-night.`;
 
-  // ✅ FIX 1: API key এখন header-এ যায় (?key= query নয়) — নতুন "AQ." key-এর জন্য
-  const res = await fetch(GEMINI_ENDPOINT, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-goog-api-key": GEMINI_API_KEY
-    },
-    body: JSON.stringify({
-      contents: [{
-        parts: [
-          { text: prompt },
-          { inline_data: { mime_type: currentMimeType, data: base64 } }
-        ]
-      }],
-      generationConfig: {
-        temperature: 0.1,
-        // ✅ FIX 2: output কেটে যাওয়া ঠেকাতে বাড়ানো হয়েছে
-        maxOutputTokens: 8192,
-        responseMimeType: "application/json",
-        // ✅ FIX 3: thinking বন্ধ — token বাঁচে, JSON কাটে না (gemini-2.5-flash)
-        thinkingConfig: { thinkingBudget: 0 }
-      }
-    })
+  const body = JSON.stringify({
+    contents: [{
+      parts: [
+        { text: prompt },
+        { inline_data: { mime_type: currentMimeType, data: base64 } }
+      ]
+    }],
+    generationConfig: {
+      temperature: 0.1,
+      maxOutputTokens: 8192,
+      responseMimeType: "application/json"
+    }
   });
 
-  if (!res.ok) {
-    const errText = await res.text();
-    console.error("Gemini API error response:", res.status, errText);
+  const attempts = [];
 
-    if (res.status === 400) throw new Error("Bad request or unclear image. Check console for details.");
-    if (res.status === 401) throw new Error("API key rejected (401). Check console for details.");
-    if (res.status === 403) throw new Error("API key invalid or restricted (403).");
-    if (res.status === 404) throw new Error("AI model not found. Check endpoint URL.");
-    if (res.status === 429) throw new Error("Too many requests. Please wait 1 minute.");
-    throw new Error(`API error ${res.status}`);
+  for (const model of MODELS) {
+    for (const mode of ["header", "query"]) {
+      const url = `${API_BASE}${model}:generateContent` +
+        (mode === "query" ? `?key=${encodeURIComponent(GEMINI_API_KEY)}` : "");
+      const headers = { "Content-Type": "application/json" };
+      if (mode === "header") headers["x-goog-api-key"] = GEMINI_API_KEY;
+
+      let res;
+      try {
+        res = await fetch(url, { method: "POST", headers, body });
+      } catch (netErr) {
+        attempts.push(`${model}: network error (internet/CORS)`);
+        break; // পরের model চেষ্টা করো
+      }
+
+      if (res.ok) {
+        console.log("Gemini OK with", model, mode);
+        return parseGeminiResponse(await res.json());
+      }
+
+      const info = await readApiError(res);
+      console.error("Gemini error:", model, mode, info);
+      attempts.push(`${model} (${mode}): ${info}`);
+
+      if (res.status === 429) throw new Error("Too many requests. Please wait 1 minute.");
+      // 401/403 হলে অন্য auth পদ্ধতি চেষ্টা করবে; 400/404 হলে সরাসরি পরের model
+      if (res.status !== 401 && res.status !== 403) break;
+    }
   }
 
-  const data = await res.json();
-  const candidate = data?.candidates?.[0];
+  const all401 = attempts.length && attempts.every(a => a.includes(": 401") || a.includes(": 403"));
+  const hint = all401
+    ? "\n\n👉 API key রিজেক্ট হচ্ছে। AI Studio-তে নতুন project দিয়ে নতুন key বানাও।"
+    : "";
+  throw new Error("AI call failed:\n" + attempts.join("\n") + hint);
+}
 
+async function readApiError(res) {
+  const raw = await res.text();
+  try {
+    const e = JSON.parse(raw).error || {};
+    const reason = (e.details || []).find(d => d.reason)?.reason || "";
+    return `${res.status} ${e.status || ""} ${reason} ${(e.message || "").slice(0, 100)}`
+      .replace(/\s+/g, " ").trim();
+  } catch (_) {
+    return `${res.status} ${raw.slice(0, 120)}`;
+  }
+}
+
+function parseGeminiResponse(data) {
+  const candidate = data?.candidates?.[0];
   if (!candidate) {
     const reason = data?.promptFeedback?.blockReason;
     throw new Error(reason ? `Request blocked: ${reason}` : "Empty AI response");
   }
 
-  // ✅ FIX 4: সব text part জোড়া লাগানো (thought part বাদ দিয়ে)
   const text = (candidate.content?.parts || [])
     .filter(p => !p.thought && typeof p.text === "string")
     .map(p => p.text)
@@ -168,7 +200,6 @@ IMPORTANT:
     .trim();
 
   console.log("Raw AI response:", text, "| finishReason:", candidate.finishReason);
-
   if (!text) throw new Error("Empty AI response");
 
   try {
@@ -177,14 +208,9 @@ IMPORTANT:
     const start = text.indexOf("{");
     const end = text.lastIndexOf("}") + 1;
     if (start !== -1 && end > start) {
-      try {
-        return JSON.parse(text.slice(start, end));
-      } catch (_) { /* fall through */ }
+      try { return JSON.parse(text.slice(start, end)); } catch (_) { /* fall through */ }
     }
-    console.error("JSON parse error:", text);
-    if (candidate.finishReason === "MAX_TOKENS") {
-      throw new Error("AI response was cut off. Try again.");
-    }
+    if (candidate.finishReason === "MAX_TOKENS") throw new Error("AI response was cut off. Try again.");
     throw new Error("AI returned malformed data. Try again.");
   }
 }
