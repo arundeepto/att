@@ -1,6 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getAI, GoogleAIBackend } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-ai.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAewLllHLC5IBces1RCzfxZ4k19k3dU_Lw",
@@ -14,3 +15,6 @@ const firebaseConfig = {
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+
+// 🌟 Firebase AI Logic (No API Key needed)
+export const ai = getAI(app, { backend: new GoogleAIBackend() });
