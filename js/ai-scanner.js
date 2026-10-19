@@ -37,7 +37,7 @@ function handleFile(file) {
   reader.onload = ev => {
     const img = new Image();
     img.onload = () => {
-      // Compress & Resize Image for Groq Vision (Max 800px is optimum)
+      // Compress & Resize Image for Groq Vision (Max 800px)
       const canvas = document.createElement("canvas");
       let width = img.width;
       let height = img.height;
@@ -58,14 +58,14 @@ function handleFile(file) {
       const ctx = canvas.getContext("2d");
       ctx.drawImage(img, 0, 0, width, height);
 
-      // Export low-file size base64 JPEG
+      // Export low file-size base64 JPEG
       const resizedDataUrl = canvas.toDataURL("image/jpeg", 0.7);
       if (previewImg) previewImg.src = resizedDataUrl;
       if (previewBox) previewBox.classList.remove("hidden");
 
-      base64Image = resizedDataUrl.split(",")[1]; // pure base64
+      base64Image = resizedDataUrl.split(",")[1];
       if (scanStatus) {
-        scanStatus.innerText = "✅ Image processed & ready";
+        scanStatus.innerText = "✅ Image ready for scanning";
         scanStatus.className = "text-xs text-green-600 mt-2 text-center";
       }
     };
@@ -108,7 +108,7 @@ scanBtn?.addEventListener("click", async () => {
 });
 
 // =========================================================
-// GROQ VISION API CALL
+// GROQ VISION API CALL (Updated Model)
 // =========================================================
 async function callGroqVision(base64) {
   const prompt = `Extract prescription data into JSON.
@@ -136,7 +136,7 @@ Structure:
       "Authorization": `Bearer ${apiKey}`
     },
     body: JSON.stringify({
-      model: "llama-3.2-11b-vision-preview",
+      model: "llama-3.2-90b-vision-preview", // 🟢 Updated active model
       messages: [
         {
           role: "user",
