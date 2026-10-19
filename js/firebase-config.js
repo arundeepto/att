@@ -17,9 +17,7 @@ const firebaseConfig = {
 
 // 🔧 STEP 2: Get Gemini API key from https://aistudio.google.com/app/apikey
 export const GEMINI_API_KEY = "AQ.Ab8RN6JeEOqK7D5okQqtB548Ro7g0K9jcueoNHR49RIlMZSZsQ";
-export const GEMINI_ENDPOINT =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
-
+export const GEMINI_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
