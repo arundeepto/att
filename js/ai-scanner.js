@@ -18,7 +18,7 @@ let currentMimeType = "image/jpeg";
 // =========================================================
 // UPLOAD
 // =========================================================
-dropZone?.addEventListener("click", () => fileInput.click());
+dropZone?.addEventListener("click", () => fileInput?.click());
 dropZone?.addEventListener("dragover", e => e.preventDefault());
 dropZone?.addEventListener("drop", e => {
   e.preventDefault();
@@ -40,16 +40,16 @@ function handleFile(file) {
   currentMimeType = file.type;
   const reader = new FileReader();
   reader.onload = ev => {
-    previewImg.src = ev.target.result;
-    previewBox.classList.remove("hidden");
+    if (previewImg) previewImg.src = ev.target.result;
+    if (previewBox) previewBox.classList.remove("hidden");
     base64Image = ev.target.result.split(",")[1];
-    scanStatus.innerText = "✅ Image ready";
+    if (scanStatus) scanStatus.innerText = "✅ Image ready";
   };
   reader.readAsDataURL(file);
 }
 
 // =========================================================
-// AI EXTRACT (NO patient name — logged-in patient uses own)
+// AI EXTRACT
 // =========================================================
 scanBtn?.addEventListener("click", async () => {
   if (!base64Image) {
@@ -57,8 +57,10 @@ scanBtn?.addEventListener("click", async () => {
     return;
   }
   scanBtn.disabled = true;
-  scanStatus.innerText = "🤖 AI analyzing prescription...";
-  scanStatus.className = "text-xs text-gray-500 mt-2 text-center";
+  if (scanStatus) {
+    scanStatus.innerText = "🤖 AI analyzing prescription...";
+    scanStatus.className = "text-xs text-gray-500 mt-2 text-center";
+  }
 
   try {
     const extracted = await callGeminiVision(base64Image);
@@ -69,25 +71,28 @@ scanBtn?.addEventListener("click", async () => {
     }
 
     fillForm(extracted);
-    scanStatus.innerText = "✅ Extraction complete!";
-    scanStatus.className = "text-xs text-green-600 mt-2 text-center font-medium";
+    if (scanStatus) {
+      scanStatus.innerText = "✅ Extraction complete!";
+      scanStatus.className = "text-xs text-green-600 mt-2 text-center font-medium";
+    }
   } catch (err) {
     console.error("AI error:", err);
-    scanStatus.innerText = "❌ " + (err.message || "Failed to read prescription");
-    scanStatus.className = "text-xs text-red-600 mt-2 text-center";
-    // NO fallback demo — show error clearly
+    if (scanStatus) {
+      scanStatus.innerText = "❌ " + (err.message || "Failed to read prescription");
+      scanStatus.className = "text-xs text-red-600 mt-2 text-center";
+    }
   } finally {
     scanBtn.disabled = false;
   }
 });
 
 // =========================================================
-// GEMINI VISION API CALL — No patient name
+// GEMINI VISION API CALL
 // =========================================================
 async function callGeminiVision(base64) {
   const prompt = `You are a medical prescription data extractor. Analyze this prescription image and extract the information.
 
-Return ONLY valid JSON with this EXACT structure:
+Return JSON with this EXACT structure:
 {
   "date": "YYYY-MM-DD",
   "doctorName": "string",
@@ -105,12 +110,11 @@ Return ONLY valid JSON with this EXACT structure:
 }
 
 IMPORTANT:
-- Do NOT include patient name (the scanning user IS the patient)
-- pastHistory = any PAST illnesses, diseases, surgeries mentioned in the prescription
-- drugHistory = any DRUG ALLERGIES or adverse reactions mentioned
-- If a section is not visible, return empty array [] or empty string ""
-- Frequencies like "1-0-1" mean morning-noon-night
-- Return ONLY raw JSON. No markdown, no explanations, no code blocks.`;
+- Do NOT include patient name.
+- pastHistory = any PAST illnesses, diseases, surgeries mentioned in the prescription.
+- drugHistory = any DRUG ALLERGIES or adverse reactions mentioned.
+- If a section is not visible, return empty array [] or empty string "".
+- Frequencies like "1-0-1" mean morning-noon-night.`;
 
   const res = await fetch(`${GEMINI_ENDPOINT}?key=${GEMINI_API_KEY}`, {
     method: "POST",
@@ -124,7 +128,8 @@ IMPORTANT:
       }],
       generationConfig: {
         temperature: 0.1,
-        maxOutputTokens: 2048
+        maxOutputTokens: 2048,
+        responseMimeType: "application/json" // 🟢 JSON response নিশ্চিত করতে
       }
     })
   });
@@ -147,53 +152,53 @@ IMPORTANT:
 
   if (!text) throw new Error("Empty AI response");
 
-  // Robust JSON extraction
-  const start = text.indexOf("{");
-  const end = text.lastIndexOf("}") + 1;
-  if (start === -1 || end === 0) {
-    console.error("No JSON in response:", text);
-    throw new Error("AI did not return valid JSON. Try again.");
-  }
-
-  const jsonStr = text.slice(start, end);
   try {
-    return JSON.parse(jsonStr);
+    return JSON.parse(text);
   } catch (e) {
-    console.error("JSON parse error:", jsonStr);
+    // Fallback in case of markdown text
+    const start = text.indexOf("{");
+    const end = text.lastIndexOf("}") + 1;
+    if (start !== -1 && end > start) {
+      return JSON.parse(text.slice(start, end));
+    }
+    console.error("JSON parse error:", text);
     throw new Error("AI returned malformed data. Try again.");
   }
 }
 
 // =========================================================
-// FILL FORM (no patient name)
+// FILL FORM
 // =========================================================
 function fillForm(d) {
-  document.getElementById("aiDate").value = d.date || new Date().toISOString().split("T")[0];
-  document.getElementById("aiDoctor").value = d.doctorName || "";
-  document.getElementById("aiDiagnosis").value = d.diagnosis || "";
-  document.getElementById("aiMeds").value = (d.medications || [])
-    .map(m => `${m.name} | ${m.dosage} | ${m.frequency} | ${m.duration}`)
+  const setVal = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.value = val || "";
+  };
+
+  setVal("aiDate", d.date || new Date().toISOString().split("T")[0]);
+  setVal("aiDoctor", d.doctorName);
+  setVal("aiDiagnosis", d.diagnosis);
+
+  const medsText = (d.medications || [])
+    .map(m => `${m.name || ""} | ${m.dosage || ""} | ${m.frequency || ""} | ${m.duration || ""}`)
     .join("\n");
+  setVal("aiMeds", medsText);
 
-  const pastEl = document.getElementById("aiPastHistory");
-  if (pastEl) {
-    pastEl.value = (d.pastHistory || [])
-      .map(p => `${p.condition} | ${p.year || ""} | ${p.notes || ""}`)
-      .join("\n");
-  }
+  const pastText = (d.pastHistory || [])
+    .map(p => `${p.condition || ""} | ${p.year || ""} | ${p.notes || ""}`)
+    .join("\n");
+  setVal("aiPastHistory", pastText);
 
-  const drugEl = document.getElementById("aiDrugHistory");
-  if (drugEl) {
-    drugEl.value = (d.drugHistory || [])
-      .map(x => `${x.drug} | ${x.reaction} | ${x.severity || ""}`)
-      .join("\n");
-  }
+  const drugText = (d.drugHistory || [])
+    .map(x => `${x.drug || ""} | ${x.reaction || ""} | ${x.severity || ""}`)
+    .join("\n");
+  setVal("aiDrugHistory", drugText);
 
-  document.getElementById("aiNotes").value = d.doctorNotes || "";
+  setVal("aiNotes", d.doctorNotes);
 }
 
 // =========================================================
-// SAVE — auto-uses logged-in user's name
+// SAVE
 // =========================================================
 saveBtn?.addEventListener("click", async () => {
   if (!auth.currentUser) {
@@ -203,65 +208,74 @@ saveBtn?.addEventListener("click", async () => {
 
   saveBtn.disabled = true;
   const statusBox = document.getElementById("saveStatus");
-  statusBox.innerText = "Saving...";
+  if (statusBox) statusBox.innerText = "Saving...";
 
   try {
-    // Get patient's own name from their profile
     const userSnap = await getDoc(doc(db, "users", auth.currentUser.uid));
     if (!userSnap.exists()) throw new Error("Profile not found");
     const patientProfile = userSnap.data();
 
-    const medsText = document.getElementById("aiMeds").value;
+    const medsText = document.getElementById("aiMeds")?.value || "";
     const pastText = document.getElementById("aiPastHistory")?.value || "";
     const drugText = document.getElementById("aiDrugHistory")?.value || "";
+    const diagText = document.getElementById("aiDiagnosis")?.value || "";
 
-    if (!medsText.trim() && !document.getElementById("aiDiagnosis").value.trim()) {
-      statusBox.innerText = "❌ Nothing to save — extract first";
+    if (!medsText.trim() && !diagText.trim()) {
+      if (statusBox) statusBox.innerText = "❌ Nothing to save — extract first";
       saveBtn.disabled = false;
       return;
     }
 
     const record = {
-      patientName: patientProfile.name,           // ← auto from profile
-      patientId: patientProfile.healthId,          // ← auto from profile
-      date: document.getElementById("aiDate").value,
-      doctor: document.getElementById("aiDoctor").value || "Unknown",
-      diagnosis: document.getElementById("aiDiagnosis").value,
+      patientName: patientProfile.name || "Patient",
+      patientId: patientProfile.healthId || auth.currentUser.uid,
+      date: document.getElementById("aiDate")?.value || new Date().toISOString().split("T")[0],
+      doctor: document.getElementById("aiDoctor")?.value || "Unknown",
+      diagnosis: diagText,
       medications: medsText,
-      doctorNotes: document.getElementById("aiNotes").value,
+      doctorNotes: document.getElementById("aiNotes")?.value || "",
       savedAt: new Date().toISOString(),
       source: "AI Scanner (Self)"
     };
 
-    const parsedMeds = medsText.split("\n").filter(Boolean).map(line => {
-      const [name, dosage, frequency, duration] = line.split("|").map(s => s.trim());
-      return { name, dosage, frequency, duration, taken: false };
+    const parsedMeds = medsText.split("\n").filter(line => line.trim()).map(line => {
+      const [name, dosage, frequency, duration] = line.split("|").map(s => s ? s.trim() : "");
+      return { name: name || "", dosage: dosage || "", frequency: frequency || "", duration: duration || "", taken: false };
     });
 
-    const parsedPast = pastText.split("\n").filter(Boolean).map(line => {
-      const [condition, year, notes] = line.split("|").map(s => s.trim());
-      return { condition, year, notes, addedAt: new Date().toISOString() };
+    const parsedPast = pastText.split("\n").filter(line => line.trim()).map(line => {
+      const [condition, year, notes] = line.split("|").map(s => s ? s.trim() : "");
+      return { condition: condition || "", year: year || "", notes: notes || "", addedAt: new Date().toISOString() };
     });
 
-    const parsedDrug = drugText.split("\n").filter(Boolean).map(line => {
-      const [drug, reaction, severity] = line.split("|").map(s => s.trim());
-      return { drug, reaction, severity, addedAt: new Date().toISOString() };
+    const parsedDrug = drugText.split("\n").filter(line => line.trim()).map(line => {
+      const [drug, reaction, severity] = line.split("|").map(s => s ? s.trim() : "");
+      return { drug: drug || "", reaction: reaction || "", severity: severity || "", addedAt: new Date().toISOString() };
     });
 
-    await updateDoc(doc(db, "users", auth.currentUser.uid), {
-      medicalHistory: arrayUnion(record),
-      medications: arrayUnion(...parsedMeds),
-      pastHistory: arrayUnion(...parsedPast),
-      drugHistory: arrayUnion(...parsedDrug)
-    });
+    // 🟢 Firestore Update Fix: খালি Array থাকলে arrayUnion crash এড়ানো হয়েছে
+    const updatePayload = {
+      medicalHistory: arrayUnion(record)
+    };
 
-    statusBox.innerText = "✅ Saved to your health card!";
-    statusBox.className = "text-xs text-green-700 mt-2 text-center font-medium";
+    if (parsedMeds.length > 0) updatePayload.medications = arrayUnion(...parsedMeds);
+    if (parsedPast.length > 0) updatePayload.pastHistory = arrayUnion(...parsedPast);
+    if (parsedDrug.length > 0) updatePayload.drugHistory = arrayUnion(...parsedDrug);
+
+    await updateDoc(doc(db, "users", auth.currentUser.uid), updatePayload);
+
+    if (statusBox) {
+      statusBox.innerText = "✅ Saved to your health card!";
+      statusBox.className = "text-xs text-green-700 mt-2 text-center font-medium";
+    }
     setTimeout(() => window.location.reload(), 1200);
 
   } catch (e) {
-    statusBox.innerText = "❌ " + e.message;
-    statusBox.className = "text-xs text-red-600 mt-2 text-center";
+    console.error("Save error:", e);
+    if (statusBox) {
+      statusBox.innerText = "❌ " + e.message;
+      statusBox.className = "text-xs text-red-600 mt-2 text-center";
+    }
     saveBtn.disabled = false;
   }
 });
