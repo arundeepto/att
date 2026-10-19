@@ -1,5 +1,5 @@
 // js/ai-scanner.js
-import { auth, db, GEMINI_API_KEY, GEMINI_ENDPOINT } from "./firebase-config.js";
+import { auth, db, OPENROUTER_API_KEY, OPENROUTER_ENDPOINT } from "./firebase-config.js";
 import {
   doc, updateDoc, arrayUnion, getDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -43,7 +43,7 @@ function handleFile(file) {
   reader.onload = ev => {
     previewImg.src = ev.target.result;
     previewBox.classList.remove("hidden");
-    base64Image = ev.target.result.split(",")[1];
+    base64Image = ev.target.result; // OpenRouter-এ data URI ফরম্যাটে লাগে
     scanStatus.innerText = "✅ Image ready";
     scanStatus.className = "text-xs text-green-600 mt-2 text-center font-medium";
   };
@@ -51,7 +51,7 @@ function handleFile(file) {
 }
 
 // =========================================================
-// 2. AI EXTRACT (No Demo/Fallback)
+// 2. AI EXTRACT (OpenRouter API)
 // =========================================================
 scanBtn?.addEventListener("click", async () => {
   if (!base64Image) {
@@ -60,13 +60,12 @@ scanBtn?.addEventListener("click", async () => {
   }
 
   scanBtn.disabled = true;
-  scanStatus.innerText = "🤖 AI analyzing prescription... (5-10 sec)";
+  scanStatus.innerText = "🤖 AI analyzing prescription... (10-15 sec)";
   scanStatus.className = "text-xs text-gray-500 mt-2 text-center";
 
   try {
-    const extracted = await callGeminiVision(base64Image);
+    const extracted = await callOpenRouterVision(base64Image);
 
-    // Check if AI actually found something
     if (!extracted.diagnosis && (!extracted.medications || extracted.medications.length === 0)) {
       throw new Error("AI couldn't read the text. Please upload a clearer image.");
     }
@@ -84,9 +83,9 @@ scanBtn?.addEventListener("click", async () => {
 });
 
 // =========================================================
-// 3. GEMINI API CALL (Updated for Gemini 2.5)
+// 3. OPENROUTER API CALL
 // =========================================================
-async function callGeminiVision(base64) {
+async function callOpenRouterVision(base64DataUri) {
   const prompt = `You are a medical prescription reader.
 Extract information from this image and return ONLY valid JSON in this exact format:
 {
@@ -102,35 +101,45 @@ Do not include patient name.
 If a section is empty, return an empty array [].
 Return ONLY the JSON object, nothing else.`;
 
-  const res = await fetch(`${GEMINI_ENDPOINT}?key=${GEMINI_API_KEY}`, {
+  // OpenRouter-এর জন্য messages ফরম্যাট
+  const messages = [
+    {
+      role: "user",
+      content: [
+        { type: "text", text: prompt },
+        { type: "image_url", image_url: { url: base64DataUri } }
+      ]
+    }
+  ];
+
+  const res = await fetch(OPENROUTER_ENDPOINT, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+      "Content-Type": "application/json",
+      "HTTP-Referer": "https://ihms-bd.web.app", // তোমার সাইটের নাম
+      "X-Title": "IHMS Health App"
+    },
     body: JSON.stringify({
-      contents: [{
-        parts: [
-          { text: prompt },
-          { inline_data: { mime_type: currentMimeType, data: base64 } }
-        ]
-      }],
-      generationConfig: {
-        temperature: 0.1
-      }
+      model: "google/gemma-3-27b-it:free", // ফ্রি ভিশন মডেল
+      messages: messages,
+      temperature: 0.1
     })
   });
 
   if (!res.ok) {
     const errorData = await res.json();
-    console.error("API Error Response:", errorData);
+    console.error("OpenRouter Error:", errorData);
     const msg = errorData.error?.message || res.status;
     throw new Error(`API Error: ${msg}`);
   }
 
   const data = await res.json();
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  const text = data?.choices?.[0]?.message?.content || "";
   
-  console.log("Raw AI Response:", text); // For debugging
+  console.log("Raw AI Response:", text);
 
-  // Parse JSON robustly (handles markdown code blocks if AI sends them)
+  // JSON বের করা
   const jsonMatch = text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) throw new Error("AI returned invalid format");
   
@@ -142,7 +151,7 @@ Return ONLY the JSON object, nothing else.`;
 }
 
 // =========================================================
-// 4. FILL FORM
+// 4. FILL FORM (আগের মতোই)
 // =========================================================
 function fillForm(d) {
   document.getElementById("aiDate").value = d.date || new Date().toISOString().split("T")[0];
@@ -170,7 +179,7 @@ function fillForm(d) {
 }
 
 // =========================================================
-// 5. SAVE TO FIRESTORE
+// 5. SAVE TO FIRESTORE (আগের মতোই)
 // =========================================================
 saveBtn?.addEventListener("click", async () => {
   if (!auth.currentUser) {
