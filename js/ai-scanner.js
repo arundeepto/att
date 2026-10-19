@@ -1,5 +1,6 @@
 // js/ai-scanner.js
-import { auth, db, GEMINI_API_KEY } from "./firebase-config.js";
+import { auth, db, ai } from "./firebase-config.js";
+import { getGenerativeModel } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-ai.js";
 import {
   doc, updateDoc, arrayUnion, getDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -51,7 +52,7 @@ function handleFile(file) {
 }
 
 // =========================================================
-// 2. AI EXTRACT (Using Official Google SDK)
+// 2. AI EXTRACT (Using Firebase AI Logic)
 // =========================================================
 scanBtn?.addEventListener("click", async () => {
   if (!base64Image) {
@@ -64,12 +65,8 @@ scanBtn?.addEventListener("click", async () => {
   scanStatus.className = "text-xs text-blue-600 mt-2 text-center font-medium";
 
   try {
-    // ডাইনামিকভাবে Google SDK ইমপোর্ট করা
-    const { GoogleGenerativeAI } = await import("https://esm.sh/@google/generative-ai");
-    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-    
-    // নতুন এবং সাপোর্টেড মডেল: gemini-2.0-flash
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    // মডেল তৈরি করো
+    const model = getGenerativeModel(ai, { model: "gemini-2.5-flash" });
 
     const prompt = `You are a medical prescription reader.
 Extract information from this image and return ONLY valid JSON in this exact format:
@@ -116,7 +113,7 @@ Return ONLY the JSON object, nothing else.`;
 
   } catch (err) {
     console.error("AI Error:", err);
-    scanStatus.innerText = "❌ " + (err.message || "Failed to read. Check API Key.");
+    scanStatus.innerText = "❌ " + (err.message || "Failed to read. Check Internet.");
     scanStatus.className = "text-xs text-red-600 mt-2 text-center";
   } finally {
     scanBtn.disabled = false;
