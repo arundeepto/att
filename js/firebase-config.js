@@ -16,8 +16,14 @@ const firebaseConfig = {
   };
 
 // 🔧 STEP 2: Get Gemini API key from https://aistudio.google.com/app/apikey
-export const GEMINI_API_KEY = "AQ.Ab8RN6JeEOqK7D5okQqtB548Ro7g0K9jcueoNHR49RIlMZSZsQ";
-export const GEMINI_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent";
+// firebase-config.js
+
+// Ti Groq API Key-m
+export const GROQ_API_KEY = "Gsk_aIA7pnJcgtM00jcLmkqmWGdyb3FYhJOB0Qo2st0RxiTlOmLQIBnQ"; 
+
+// Ti Groq API Endpoint URL
+export const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
+
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
