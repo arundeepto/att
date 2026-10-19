@@ -1,5 +1,5 @@
 // js/ai-scanner.js
-import { auth, db, OPENROUTER_API_KEY, OPENROUTER_ENDPOINT } from "./firebase-config.js";
+import { auth, db, GEMINI_API_KEY } from "./firebase-config.js";
 import {
   doc, updateDoc, arrayUnion, getDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -16,7 +16,7 @@ let base64Image = null;
 let currentMimeType = "image/jpeg";
 
 // =========================================================
-// 1. IMAGE UPLOAD
+// 1. IMAGE UPLOAD HANDLER
 // =========================================================
 dropZone?.addEventListener("click", () => fileInput.click());
 dropZone?.addEventListener("dragover", e => e.preventDefault());
@@ -43,7 +43,7 @@ function handleFile(file) {
   reader.onload = ev => {
     previewImg.src = ev.target.result;
     previewBox.classList.remove("hidden");
-    base64Image = ev.target.result;
+    base64Image = ev.target.result.split(",")[1];
     scanStatus.innerText = "✅ Image ready";
     scanStatus.className = "text-xs text-green-600 mt-2 text-center font-medium";
   };
@@ -51,7 +51,7 @@ function handleFile(file) {
 }
 
 // =========================================================
-// 2. AI EXTRACT (Scan Button Click)
+// 2. AI EXTRACT (Using Official Google SDK)
 // =========================================================
 scanBtn?.addEventListener("click", async () => {
   if (!base64Image) {
@@ -60,33 +60,18 @@ scanBtn?.addEventListener("click", async () => {
   }
 
   scanBtn.disabled = true;
-  scanStatus.innerText = "🤖 AI analyzing... (wait 10-20 sec)";
+  scanStatus.innerText = "🤖 AI analyzing... (5-10 sec)";
   scanStatus.className = "text-xs text-blue-600 mt-2 text-center font-medium";
 
   try {
-    const extracted = await callOpenRouterVision(base64Image);
+    // ডাইনামিকভাবে Google SDK ইমপোর্ট করা
+    const { GoogleGenerativeAI } = await import("https://esm.sh/@google/generative-ai");
+    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+    
+    // নতুন এবং সাপোর্টেড মডেল: gemini-2.0-flash
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
-    if (!extracted.diagnosis && (!extracted.medications || extracted.medications.length === 0)) {
-      throw new Error("AI couldn't read the text. Please upload a clearer image.");
-    }
-
-    fillForm(extracted);
-    scanStatus.innerText = "✅ Extraction complete!";
-    scanStatus.className = "text-xs text-green-600 mt-2 text-center font-medium";
-  } catch (err) {
-    console.error("AI Error:", err);
-    scanStatus.innerText = "❌ " + err.message;
-    scanStatus.className = "text-xs text-red-600 mt-2 text-center";
-  } finally {
-    scanBtn.disabled = false;
-  }
-});
-
-// =========================================================
-// 3. OPENROUTER API CALL (Client-Side Fallback Loop)
-// =========================================================
-async function callOpenRouterVision(base64DataUri) {
-  const prompt = `You are a medical prescription reader.
+    const prompt = `You are a medical prescription reader.
 Extract information from this image and return ONLY valid JSON in this exact format:
 {
   "date": "YYYY-MM-DD",
@@ -101,89 +86,45 @@ Do not include patient name.
 If a section is empty, return an empty array [].
 Return ONLY the JSON object, nothing else.`;
 
-  const messages = [
-    {
-      role: "user",
-      content: [
-        { type: "text", text: prompt },
-        { type: "image_url", image_url: { url: base64DataUri } }
-      ]
+    // ছবি এবং প্রম্পট একসাথে পাঠানো
+    const result = await model.generateContent([
+      prompt,
+      {
+        inlineData: {
+          data: base64Image,
+          mimeType: currentMimeType
+        }
+      }
+    ]);
+
+    const responseText = result.response.text();
+    console.log("Raw AI Response:", responseText);
+
+    // JSON এক্সট্র্যাক্ট করা
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error("AI returned invalid format");
+    
+    const extracted = JSON.parse(jsonMatch[0]);
+
+    if (!extracted.diagnosis && (!extracted.medications || extracted.medications.length === 0)) {
+      throw new Error("AI couldn't read the text. Please try a clearer image.");
     }
-  ];
 
-  // 🌟 একাধিক ফ্রি মডেলের লিস্ট (ফেইল হলে একটার পর একটা ট্রাই করবে)
-  const modelList = [
-    "google/gemma-4-26b-a4b-it:free",
-    "google/gemma-4-31b-it:free",
-    "nvidia/nemotron-nano-12b-v2-vl:free",
-    "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
-    "allenai/molmo-2-8b:free",
-    "meta-llama/llama-3.2-11b-vision-instruct:free"
-  ];
+    fillForm(extracted);
+    scanStatus.innerText = "✅ Extraction complete!";
+    scanStatus.className = "text-xs text-green-600 mt-2 text-center font-medium";
 
-  let lastError = "No models available";
-
-  // একটার পর একটা মডেল লুপ চালাবে
-  for (const modelId of modelList) {
-    try {
-      console.log(`⏳ Trying model: ${modelId}`);
-      
-      const res = await fetch(OPENROUTER_ENDPOINT, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-          "Content-Type": "application/json",
-          "HTTP-Referer": "https://ihms-bd.web.app",
-          "X-Title": "IHMS Health App"
-        },
-        body: JSON.stringify({
-          model: modelId,
-          messages: messages,
-          temperature: 0.1
-        })
-      });
-
-      // যদি এরর আসে, পরের মডেলে চলে যাবে
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        const msg = errorData.error?.message || res.status;
-        console.warn(`❌ ${modelId} failed: ${msg}`);
-        lastError = msg;
-        continue; 
-      }
-
-      const data = await res.json();
-      const text = data?.choices?.[0]?.message?.content || "";
-      
-      if (!text) {
-        console.warn(`❌ ${modelId} returned empty`);
-        lastError = "Empty response";
-        continue;
-      }
-
-      // JSON খুঁজে বের করা
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        console.warn(`❌ ${modelId} gave invalid JSON:`, text);
-        lastError = "Invalid JSON format";
-        continue;
-      }
-      
-      console.log(`✅ Success with: ${modelId}`);
-      return JSON.parse(jsonMatch[0]);
-
-    } catch (e) {
-      console.warn(`❌ ${modelId} error: ${e.message}`);
-      lastError = e.message;
-    }
+  } catch (err) {
+    console.error("AI Error:", err);
+    scanStatus.innerText = "❌ " + (err.message || "Failed to read. Check API Key.");
+    scanStatus.className = "text-xs text-red-600 mt-2 text-center";
+  } finally {
+    scanBtn.disabled = false;
   }
-
-  // যদি সব মডেল ফেইল করে
-  throw new Error(`All AI models failed. Last error: ${lastError}`);
-}
+});
 
 // =========================================================
-// 4. FILL FORM
+// 3. FILL FORM
 // =========================================================
 function fillForm(d) {
   document.getElementById("aiDate").value = d.date || new Date().toISOString().split("T")[0];
@@ -211,7 +152,7 @@ function fillForm(d) {
 }
 
 // =========================================================
-// 5. SAVE TO FIRESTORE
+// 4. SAVE TO FIRESTORE
 // =========================================================
 saveBtn?.addEventListener("click", async () => {
   if (!auth.currentUser) {
@@ -234,7 +175,7 @@ saveBtn?.addEventListener("click", async () => {
     const drugText = document.getElementById("aiDrugHistory")?.value || "";
 
     if (!medsText.trim() && !document.getElementById("aiDiagnosis").value.trim()) {
-      statusBox.innerText = "❌ Nothing to save — extract first";
+      statusBox.innerText = "❌ Nothing to save";
       statusBox.className = "text-xs text-red-600 mt-2 text-center";
       saveBtn.disabled = false;
       return;
