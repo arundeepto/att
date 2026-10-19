@@ -1,11 +1,8 @@
 // js/firebase-config.js
-// ⚠️ IMPORTANT: Replace these with your own Firebase + Gemini keys
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-// 🔧 STEP 1: Firebase Console → Project Settings → Web App → Config copy
 const firebaseConfig = {
     apiKey: "AIzaSyAewLllHLC5IBces1RCzfxZ4k19k3dU_Lw",
     authDomain: "healthcare-f59c5.firebaseapp.com",
@@ -15,17 +12,8 @@ const firebaseConfig = {
     appId: "1:335899809673:web:d395f1a579bcec2b12f358"
   };
 
-// 🔧 STEP 2: Get Gemini API key from https://aistudio.google.com/app/apikey
-// firebase-config.js
-
-// Ti Groq API Key-m
-// firebase-config.js
-
-export const GEMINI_API_KEY = "AQ.Ab8RN6IWN8cFUDSsz3doeHgfoS2vd1YeSamXmP5zAtZqPEsJNw";
-
-export const GEMINI_ENDPOINT =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent";
-
+// এখানে আপনার OpenRouter-এর API Key বসিয়ে দিন
+export const OPENROUTER_API_KEY = "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";
 
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
