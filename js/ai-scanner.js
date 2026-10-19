@@ -1,7 +1,7 @@
 // js/ai-scanner.js
 import { auth, db } from "./firebase-config.js";
-import {
-  doc, updateDoc, arrayUnion, getDoc
+import { 
+  doc, updateDoc, arrayUnion, getDoc 
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const dropZone = document.getElementById("dropZone");
@@ -15,7 +15,7 @@ const scanStatus = document.getElementById("scanStatus");
 let base64Image = null;
 
 // =========================================================
-// 1. IMAGE UPLOAD HANDLER
+// 1. IMAGE UPLOAD
 // =========================================================
 dropZone?.addEventListener("click", () => fileInput.click());
 dropZone?.addEventListener("dragover", e => e.preventDefault());
@@ -49,7 +49,7 @@ function handleFile(file) {
 }
 
 // =========================================================
-// 2. AI EXTRACT (Direct Base64 to Pollinations AI)
+// 2. AI EXTRACT (OpenRouter Manual Fallback)
 // =========================================================
 scanBtn?.addEventListener("click", async () => {
   if (!base64Image) {
@@ -58,7 +58,7 @@ scanBtn?.addEventListener("click", async () => {
   }
 
   scanBtn.disabled = true;
-  scanStatus.innerText = "🤖 AI analyzing... (10-15 sec)";
+  scanStatus.innerText = "🤖 AI analyzing... (wait 10-20 sec)";
   scanStatus.className = "text-xs text-blue-600 mt-2 text-center font-medium";
 
   try {
@@ -77,38 +77,83 @@ Do not include patient name.
 If a section is empty, return an empty array [].
 Return ONLY the JSON object, nothing else.`;
 
-    // Pollinations AI - Open Source Free Vision API
-    const response = await fetch("https://text.pollinations.ai/openai", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "openai",
-        messages: [
-          {
-            role: "user",
-            content: [
-              { type: "text", text: prompt },
-              { type: "image_url", image_url: { url: base64Image } }
-            ]
-          }
+    const messages = [
+      {
+        role: "user",
+        content: [
+          { type: "text", text: prompt },
+          { type: "image_url", image_url: { url: base64Image } }
         ]
-      })
-    });
+      }
+    ];
 
-    if (!response.ok) {
-      throw new Error(`Server Error: ${response.status}`);
+    // 🌟 OpenRouter API Key (তোমার আগের key টা এখানে বসাও)
+    const OPENROUTER_API_KEY = "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"; 
+
+    const modelList = [
+      "google/gemma-3-12b-it:free",
+      "google/gemma-3-27b-it:free",
+      "nvidia/nemotron-nano-12b-v2-vl:free",
+      "meta-llama/llama-3.2-11b-vision-instruct:free"
+    ];
+
+    let lastError = "No models available";
+    let extracted = null;
+
+    // 🔄 একটার পর একটা মডেল ট্রাই করবে
+    for (const modelId of modelList) {
+      try {
+        console.log(`Trying model: ${modelId}`);
+        
+        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://ihms-bd.web.app",
+            "X-Title": "IHMS Health App"
+          },
+          body: JSON.stringify({
+            model: modelId,
+            messages: messages,
+            temperature: 0.1
+          })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.warn(`❌ ${modelId} failed:`, errorData);
+          lastError = errorData.error?.message || response.status;
+          continue; // পরের মডেলে যাবে
+        }
+
+        const data = await response.json();
+        const text = data?.choices?.[0]?.message?.content || "";
+        
+        if (!text) {
+          lastError = "Empty response";
+          continue;
+        }
+
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+          lastError = "Invalid JSON format";
+          continue;
+        }
+
+        extracted = JSON.parse(jsonMatch[0]);
+        console.log(`✅ Success with: ${modelId}`);
+        break; // সফল হলে লুপ থেকে বের হয়ে যাবে
+
+      } catch (e) {
+        console.warn(`❌ ${modelId} error:`, e.message);
+        lastError = e.message;
+      }
     }
 
-    const data = await response.json();
-    const text = data?.choices?.[0]?.message?.content || "";
-    
-    console.log("Raw AI Response:", text);
-
-    // JSON এক্সট্র্যাক্ট করা
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error("AI returned invalid format. Try again.");
-    
-    const extracted = JSON.parse(jsonMatch[0]);
+    if (!extracted) {
+      throw new Error(`All models failed. Last error: ${lastError}`);
+    }
 
     if (!extracted.diagnosis && (!extracted.medications || extracted.medications.length === 0)) {
       throw new Error("AI couldn't read the text. Please try a clearer image.");
