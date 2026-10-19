@@ -51,7 +51,7 @@ function handleFile(file) {
 }
 
 // =========================================================
-// 2. AI EXTRACT (OpenRouter with Fallback Models)
+// 2. AI EXTRACT (Scan Button Click)
 // =========================================================
 scanBtn?.addEventListener("click", async () => {
   if (!base64Image) {
@@ -60,8 +60,8 @@ scanBtn?.addEventListener("click", async () => {
   }
 
   scanBtn.disabled = true;
-  scanStatus.innerText = "🤖 AI analyzing prescription... (10-15 sec)";
-  scanStatus.className = "text-xs text-gray-500 mt-2 text-center";
+  scanStatus.innerText = "🤖 AI analyzing... (wait 10-20 sec)";
+  scanStatus.className = "text-xs text-blue-600 mt-2 text-center font-medium";
 
   try {
     const extracted = await callOpenRouterVision(base64Image);
@@ -83,7 +83,7 @@ scanBtn?.addEventListener("click", async () => {
 });
 
 // =========================================================
-// 3. OPENROUTER API CALL WITH FALLBACK MODELS
+// 3. OPENROUTER API CALL (Client-Side Fallback Loop)
 // =========================================================
 async function callOpenRouterVision(base64DataUri) {
   const prompt = `You are a medical prescription reader.
@@ -111,52 +111,75 @@ Return ONLY the JSON object, nothing else.`;
     }
   ];
 
-  const res = await fetch(OPENROUTER_ENDPOINT, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-      "Content-Type": "application/json",
-      "HTTP-Referer": "https://ihms-bd.web.app",
-      "X-Title": "IHMS Health App"
-    },
-    body: JSON.stringify({
-      // 🌟 ৮টি ফ্রি ভিশন মডেল (ফেইল হলে একটার পর একটা চেষ্টা করবে)
-      models: [
-        "google/gemma-4-31b-it:free",
-        "google/gemma-4-26b-a4b-it:free",
-        "nvidia/nemotron-nano-12b-v2-vl:free",
-        "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
-        "allenai/molmo-2-8b:free",
-        "google/gemma-3-12b-it:free",
-        "meta-llama/llama-3.2-11b-vision-instruct:free",
-        "microsoft/phi-3-vision-128k-instruct:free"
-      ],
-      messages: messages,
-      temperature: 0.1
-    })
-  });
+  // 🌟 একাধিক ফ্রি মডেলের লিস্ট (ফেইল হলে একটার পর একটা ট্রাই করবে)
+  const modelList = [
+    "google/gemma-4-26b-a4b-it:free",
+    "google/gemma-4-31b-it:free",
+    "nvidia/nemotron-nano-12b-v2-vl:free",
+    "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+    "allenai/molmo-2-8b:free",
+    "meta-llama/llama-3.2-11b-vision-instruct:free"
+  ];
 
-  if (!res.ok) {
-    const errorData = await res.json();
-    console.error("OpenRouter Error:", errorData);
-    const msg = errorData.error?.message || res.status;
-    throw new Error(`API Error: ${msg}`);
+  let lastError = "No models available";
+
+  // একটার পর একটা মডেল লুপ চালাবে
+  for (const modelId of modelList) {
+    try {
+      console.log(`⏳ Trying model: ${modelId}`);
+      
+      const res = await fetch(OPENROUTER_ENDPOINT, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": "https://ihms-bd.web.app",
+          "X-Title": "IHMS Health App"
+        },
+        body: JSON.stringify({
+          model: modelId,
+          messages: messages,
+          temperature: 0.1
+        })
+      });
+
+      // যদি এরর আসে, পরের মডেলে চলে যাবে
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        const msg = errorData.error?.message || res.status;
+        console.warn(`❌ ${modelId} failed: ${msg}`);
+        lastError = msg;
+        continue; 
+      }
+
+      const data = await res.json();
+      const text = data?.choices?.[0]?.message?.content || "";
+      
+      if (!text) {
+        console.warn(`❌ ${modelId} returned empty`);
+        lastError = "Empty response";
+        continue;
+      }
+
+      // JSON খুঁজে বের করা
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        console.warn(`❌ ${modelId} gave invalid JSON:`, text);
+        lastError = "Invalid JSON format";
+        continue;
+      }
+      
+      console.log(`✅ Success with: ${modelId}`);
+      return JSON.parse(jsonMatch[0]);
+
+    } catch (e) {
+      console.warn(`❌ ${modelId} error: ${e.message}`);
+      lastError = e.message;
+    }
   }
 
-  const data = await res.json();
-  console.log("Model used:", data.model); // F12 Console এ দেখবে কোন মডেল কাজ করেছে
-  
-  const text = data?.choices?.[0]?.message?.content || "";
-  console.log("Raw AI Response:", text);
-
-  const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error("AI returned invalid format");
-  
-  try {
-    return JSON.parse(jsonMatch[0]);
-  } catch (e) {
-    throw new Error("AI returned broken data. Try again.");
-  }
+  // যদি সব মডেল ফেইল করে
+  throw new Error(`All AI models failed. Last error: ${lastError}`);
 }
 
 // =========================================================
