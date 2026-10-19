@@ -1,11 +1,8 @@
 // js/ai-scanner.js
-import { auth, db, GEMINI_API_KEY } from "./firebase-config.js";
+import { auth, db, OPENROUTER_API_KEY } from "./firebase-config.js";
 import {
   doc, updateDoc, arrayUnion, getDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-// Google Official Gemini SDK directly from ESM CDN
-import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
 
 const dropZone = document.getElementById("dropZone");
 const fileInput = document.getElementById("fileInput");
@@ -90,7 +87,7 @@ scanBtn?.addEventListener("click", async () => {
   }
 
   try {
-    const extracted = await callGeminiSDK(base64Image);
+    const extracted = await callOpenRouterAPI(base64Image);
 
     fillForm(extracted);
     if (scanStatus) {
@@ -109,17 +106,12 @@ scanBtn?.addEventListener("click", async () => {
 });
 
 // =========================================================
-// GEMINI SDK CALL (Updated to gemini-3.8-flash)
+// OPENROUTER API CALL (Vision)
 // =========================================================
-async function callGeminiSDK(base64) {
-  const genAI = new GoogleGenerativeAI(GEMINI_API_KEY.trim());
-  const model = genAI.getGenerativeModel({
-    model: "gemini-3.8-flash",
-    generationConfig: {
-      temperature: 0.1,
-      responseMimeType: "application/json"
-    }
-  });
+async function callOpenRouterAPI(base64) {
+  if (!OPENROUTER_API_KEY) {
+    throw new Error("OpenRouter API Key is missing");
+  }
 
   const prompt = `You are a medical prescription data extractor. Analyze this prescription image and extract the information.
 
@@ -145,16 +137,40 @@ IMPORTANT:
 - If a section is not visible, return empty array [] or empty string "".
 - Return ONLY raw JSON. No markdown.`;
 
-  const imagePart = {
-    inlineData: {
-      data: base64,
-      mimeType: "image/jpeg"
-    }
-  };
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${OPENROUTER_API_KEY.trim()}`,
+      "HTTP-Referer": window.location.origin,
+      "X-Title": "Medical Prescription Scanner",
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: "google/gemini-flash-1.5", 
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: prompt },
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:image/jpeg;base64,${base64}`
+              }
+            }
+          ]
+        }
+      ]
+    })
+  });
 
-  const result = await model.generateContent([prompt, imagePart]);
-  const response = await result.response;
-  const text = response.text();
+  if (!response.ok) {
+    const errData = await response.json();
+    throw new Error(errData.error?.message || "Failed to fetch from OpenRouter");
+  }
+
+  const data = await response.json();
+  const text = data.choices?.[0]?.message?.content;
 
   if (!text) throw new Error("Empty response from AI");
 
