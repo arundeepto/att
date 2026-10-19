@@ -43,7 +43,7 @@ function handleFile(file) {
   reader.onload = ev => {
     previewImg.src = ev.target.result;
     previewBox.classList.remove("hidden");
-    base64Image = ev.target.result; // OpenRouter-এ data URI ফরম্যাটে লাগে
+    base64Image = ev.target.result;
     scanStatus.innerText = "✅ Image ready";
     scanStatus.className = "text-xs text-green-600 mt-2 text-center font-medium";
   };
@@ -51,7 +51,7 @@ function handleFile(file) {
 }
 
 // =========================================================
-// 2. AI EXTRACT (OpenRouter API)
+// 2. AI EXTRACT (OpenRouter with Fallback Models)
 // =========================================================
 scanBtn?.addEventListener("click", async () => {
   if (!base64Image) {
@@ -83,7 +83,7 @@ scanBtn?.addEventListener("click", async () => {
 });
 
 // =========================================================
-// 3. OPENROUTER API CALL
+// 3. OPENROUTER API CALL WITH FALLBACK MODELS
 // =========================================================
 async function callOpenRouterVision(base64DataUri) {
   const prompt = `You are a medical prescription reader.
@@ -101,7 +101,6 @@ Do not include patient name.
 If a section is empty, return an empty array [].
 Return ONLY the JSON object, nothing else.`;
 
-  // OpenRouter-এর জন্য messages ফরম্যাট
   const messages = [
     {
       role: "user",
@@ -117,11 +116,16 @@ Return ONLY the JSON object, nothing else.`;
     headers: {
       "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
       "Content-Type": "application/json",
-      "HTTP-Referer": "https://ihms-bd.web.app", // তোমার সাইটের নাম
+      "HTTP-Referer": "https://ihms-bd.web.app",
       "X-Title": "IHMS Health App"
     },
     body: JSON.stringify({
-      model: "google/gemma-3-27b-it:free", // ফ্রি ভিশন মডেল
+      // 🌟 এখানে একাধিক মডেলের তালিকা দেওয়া হলো
+      models: [
+        "google/gemma-4-26b-a4b-it:free",      // ১ম পছন্দ (নতুন এবং ফ্রি)
+        "nvidia/nemotron-nano-12b-v2-vl:free", // ২য় পছন্দ (ফেইল করলে এটি চলবে)
+        "google/gemma-3-12b-it:free"           // ৩য় পছন্দ (সর্বশেষ ভরসা)
+      ],
       messages: messages,
       temperature: 0.1
     })
@@ -135,11 +139,12 @@ Return ONLY the JSON object, nothing else.`;
   }
 
   const data = await res.json();
-  const text = data?.choices?.[0]?.message?.content || "";
+  // কোন মডেল উত্তর দিল তা কনসোল-এ দেখতে পাবে
+  console.log("Model used:", data.model);
   
+  const text = data?.choices?.[0]?.message?.content || "";
   console.log("Raw AI Response:", text);
 
-  // JSON বের করা
   const jsonMatch = text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) throw new Error("AI returned invalid format");
   
