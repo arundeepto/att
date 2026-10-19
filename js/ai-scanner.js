@@ -14,7 +14,7 @@ let base64Image = null;
 let currentMimeType = "image/jpeg";
 
 // 🔧 এখানে তোমার নতুন Gemini API Key বসাও
-const GEMINI_API_KEY = "AQ.Ab8RN6LNRPX8tt37e_JDLPZ5-OOFzdM3d7nOi_GHwDTmRyaabg";
+const GEMINI_API_KEY = "AQ.Ab8RN6IoY1DWyjA6IZgz47GcnYHJ65DPD5F5RXLSouYEhXZvvA"; 
 
 // 1. IMAGE UPLOAD
 dropZone?.addEventListener("click", () => fileInput.click());
@@ -44,7 +44,7 @@ function handleFile(file) {
   reader.readAsDataURL(file);
 }
 
-// 2. AI EXTRACT (Official Google SDK)
+// 2. AI EXTRACT (Official Google SDK with Dynamic Model)
 scanBtn?.addEventListener("click", async () => {
   if (!base64Image) return alert("Upload an image first");
   
@@ -53,12 +53,11 @@ scanBtn?.addEventListener("click", async () => {
   scanStatus.className = "text-xs text-blue-600 mt-2 text-center font-medium";
 
   try {
-    // 🌟 গুগলের নতুন অফিসিয়াল লাইব্রেরি ডাইনামিকভাবে লোড করা
     const { GoogleGenerativeAI } = await import("https://esm.sh/@google/generative-ai");
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
     
-    // নতুন ও সাপোর্টেড মডেল (1.5 বন্ধ হয়ে গেছে)
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+    // 🌟 গুগলের নতুন ও সাপোর্টেড মডেল (১.৫ বন্ধ হয়ে গেছে)
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const prompt = `You are a medical prescription reader.
 Extract information from this image and return ONLY valid JSON in this exact format:
@@ -113,7 +112,7 @@ Do not include patient name. Return ONLY the JSON object.`;
   }
 });
 
-// 3. SAVE TO FIRESTORE (আগের মতোই)
+// 3. SAVE TO FIRESTORE
 saveBtn?.addEventListener("click", async () => {
   if (!auth.currentUser) return alert("Login first");
   saveBtn.disabled = true;
