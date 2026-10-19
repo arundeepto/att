@@ -14,12 +14,9 @@ const firebaseConfig = {
 // Gemini API Key
 
 // 🔧 এখানে তোমার নতুন AIzaSy... দিয়ে শুরু হওয়া Key টা বসাও
-export const GEMINI_API_KEY = "AQ.Ab8RN6JNi2NC72gglTS9ybV7dipDnvY9ES64QPpqtR2sWtx8Wg";
-
-// 🔧 নতুন আপডেট করা মডেল
-export const GEMINI_ENDPOINT = 
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
-
+// 🔧 OpenRouter API Key
+export const OPENROUTER_API_KEY = "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";
+export const OPENROUTER_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
 
 
 export const app = initializeApp(firebaseConfig);
