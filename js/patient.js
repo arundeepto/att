@@ -1,16 +1,12 @@
 // js/patient.js
 import { auth, db } from "./firebase-config.js";
 import {
-  onAuthStateChanged,
-  signOut
+  onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
   doc, getDoc, updateDoc, arrayUnion
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-// =========================================================
-// TAB NAVIGATION
-// =========================================================
 document.querySelectorAll(".tab-btn").forEach(btn => {
   btn.addEventListener("click", () => {
     document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
@@ -20,61 +16,40 @@ document.querySelectorAll(".tab-btn").forEach(btn => {
   });
 });
 
-// =========================================================
-// AUTH GUARD + LOAD DATA
-// =========================================================
 let currentUser = null;
 let userData = null;
 
 onAuthStateChanged(auth, async (user) => {
-  if (!user) {
-    window.location.href = "login.html?role=patient";
-    return;
-  }
+  if (!user) { window.location.href = "login.html?role=patient"; return; }
   currentUser = user;
-
   const snap = await getDoc(doc(db, "users", user.uid));
   if (!snap.exists()) {
     alert("Profile not found. Please register again.");
     window.location.href = "register.html";
     return;
   }
-
   userData = snap.data();
   renderAll(userData);
 });
 
-// =========================================================
-// RENDER EVERYTHING
-// =========================================================
 function renderAll(data) {
-  // Health ID Card
   document.getElementById("healthIdText").innerText = data.healthId || "—";
   document.getElementById("bloodText").innerText = data.bloodGroup || "—";
   document.getElementById("ageText").innerText = data.age || "—";
   document.getElementById("genderText").innerText = data.gender || "—";
 
-  // QR Code
   try {
-    QRCode.toCanvas(
-      document.getElementById("qrCanvas"),
-      JSON.stringify({
-        id: data.healthId,
-        name: data.name,
-        blood: data.bloodGroup,
-        phone: data.phone || ""
-      }),
+    QRCode.toCanvas(document.getElementById("qrCanvas"),
+      JSON.stringify({ id: data.healthId, name: data.name, blood: data.bloodGroup, phone: data.phone || "" }),
       { width: 130, margin: 1, color: { dark: "#006a4e", light: "#ffffff" } }
     );
   } catch (e) { console.error("QR error:", e); }
 
-  // Stats
   document.getElementById("statPrescriptions").innerText = (data.medicalHistory || []).length;
   document.getElementById("statMeds").innerText = (data.medications || []).length;
-  document.getElementById("statVaccines").innerText = (data.vaccinations || []).length;
-  document.getElementById("statAppts").innerText = (data.appointments || []).length;
+  document.getElementById("statPast").innerText = (data.pastHistory || []).length;
+  document.getElementById("statDrug").innerText = (data.drugHistory || []).length;
 
-  // Recent History (home tab)
   const recent = (data.medicalHistory || []).slice().reverse().slice(0, 3);
   const recentList = document.getElementById("recentHistoryList");
   if (recent.length === 0) {
@@ -83,7 +58,6 @@ function renderAll(data) {
     recentList.innerHTML = recent.map(renderHistoryItem).join("");
   }
 
-  // Full History
   const full = (data.medicalHistory || []).slice().reverse();
   const fullList = document.getElementById("fullHistoryList");
   if (full.length === 0) {
@@ -92,16 +66,38 @@ function renderAll(data) {
     fullList.innerHTML = full.map(renderHistoryItem).join("");
   }
 
-  // Medications
-  renderMedications(data.medications || []);
+  // PAST HISTORY
+  const pastView = document.getElementById("pastHistoryView");
+  if (pastView) {
+    const past = data.pastHistory || [];
+    pastView.innerHTML = past.length === 0
+      ? '<p class="text-gray-400">No records</p>'
+      : past.slice().reverse().map(p => `
+          <div class="border-b border-orange-200 pb-1">
+            <p class="font-medium">${p.condition} ${p.year ? "(" + p.year + ")" : ""}</p>
+            ${p.notes ? `<p class="text-orange-700 text-[11px]">${p.notes}</p>` : ""}
+          </div>
+        `).join("");
+  }
 
-  // Vaccines
+  // DRUG HISTORY
+  const drugView = document.getElementById("drugHistoryView");
+  if (drugView) {
+    const drugs = data.drugHistory || [];
+    drugView.innerHTML = drugs.length === 0
+      ? '<p class="text-gray-400">No records</p>'
+      : drugs.slice().reverse().map(d => `
+          <div class="border-b border-red-200 pb-1">
+            <p class="font-medium">${d.drug}</p>
+            <p class="text-red-700 text-[11px]">${d.reaction} ${d.severity ? "· " + d.severity : ""}</p>
+          </div>
+        `).join("");
+  }
+
+  renderMedications(data.medications || []);
   renderVaccines(data.vaccinations || []);
 }
 
-// =========================================================
-// RENDER: History Item
-// =========================================================
 function renderHistoryItem(r) {
   return `
     <div class="bg-blue-50 p-4 rounded-xl border border-blue-100">
@@ -116,23 +112,16 @@ function renderHistoryItem(r) {
   `;
 }
 
-// =========================================================
-// RENDER: Medications with Reminder
-// =========================================================
 function renderMedications(meds) {
   const list = document.getElementById("medsList");
-
   if (meds.length === 0) {
-    list.innerHTML = `
-      <div class="text-center py-8">
-        <div class="text-4xl mb-2">💊</div>
-        <p class="text-sm text-gray-400">No active medications</p>
-        <p class="text-xs text-gray-400 mt-1">Scan a prescription to add medications</p>
-      </div>
-    `;
+    list.innerHTML = `<div class="text-center py-8">
+      <div class="text-4xl mb-2">💊</div>
+      <p class="text-sm text-gray-400">No active medications</p>
+      <p class="text-xs text-gray-400 mt-1">Scan a prescription to add medications</p>
+    </div>`;
     return;
   }
-
   list.innerHTML = meds.map((m, i) => {
     const taken = m.taken || false;
     return `
@@ -149,35 +138,25 @@ function renderMedications(meds) {
     `;
   }).join("");
 
-  // Toggle handlers
   list.querySelectorAll(".med-toggle").forEach(btn => {
     btn.addEventListener("click", async () => {
       const idx = Number(btn.dataset.medIndex);
       const updatedMeds = [...userData.medications];
       updatedMeds[idx].taken = !updatedMeds[idx].taken;
-
-      await updateDoc(doc(db, "users", currentUser.uid), {
-        medications: updatedMeds
-      });
-
+      await updateDoc(doc(db, "users", currentUser.uid), { medications: updatedMeds });
       userData.medications = updatedMeds;
       renderMedications(updatedMeds);
     });
   });
 }
 
-// =========================================================
-// RENDER: Vaccines
-// =========================================================
 function renderVaccines(vaccines) {
   const list = document.getElementById("vaccineList");
-
   if (vaccines.length === 0) {
     list.innerHTML = `
       <div class="text-center py-8">
         <div class="text-4xl mb-2">💉</div>
         <p class="text-sm text-gray-400">No vaccination records yet</p>
-        <p class="text-xs text-gray-400 mt-1">Vaccination reminders will appear here</p>
       </div>
       <div class="mt-6 bg-yellow-50 border border-yellow-100 rounded-2xl p-4">
         <h3 class="font-semibold text-yellow-900 text-sm mb-2">📅 Common Vaccine Schedule (Bangladesh EPI)</h3>
@@ -189,11 +168,9 @@ function renderVaccines(vaccines) {
           <li>• 9 months: MR-1, PCV Booster</li>
           <li>• 15 months: MR-2, DPT Booster</li>
         </ul>
-      </div>
-    `;
+      </div>`;
     return;
   }
-
   list.innerHTML = vaccines.map(v => `
     <div class="flex items-center justify-between p-4 rounded-xl bg-green-50 border border-green-100">
       <div>
@@ -205,9 +182,6 @@ function renderVaccines(vaccines) {
   `).join("");
 }
 
-// =========================================================
-// NURSE CALL
-// =========================================================
 document.getElementById("nurseCallBtn").addEventListener("click", async () => {
   const status = document.getElementById("nurseCallStatus");
   const call = {
@@ -218,40 +192,27 @@ document.getElementById("nurseCallBtn").addEventListener("click", async () => {
     timestamp: new Date().toISOString(),
     status: "pending"
   };
-
   try {
     await updateDoc(doc(db, "users", currentUser.uid), {
       nurseCalls: arrayUnion(call)
     });
-
-    status.innerHTML = `
-      <div class="bg-red-50 border border-red-200 rounded-xl p-3 text-red-700">
-        <p class="font-semibold text-sm">🚨 Nurse Called!</p>
-        <p class="text-xs mt-1">Wait for assistance. Called at ${new Date().toLocaleTimeString()}</p>
-      </div>
-    `;
-
-    // Simulated response
+    status.innerHTML = `<div class="bg-red-50 border border-red-200 rounded-xl p-3 text-red-700">
+      <p class="font-semibold text-sm">🚨 Nurse Called!</p>
+      <p class="text-xs mt-1">Wait for assistance. Called at ${new Date().toLocaleTimeString()}</p>
+    </div>`;
     setTimeout(() => {
-      status.innerHTML = `
-        <div class="bg-green-50 border border-green-200 rounded-xl p-3 text-green-700">
-          <p class="font-semibold text-sm">✅ Nurse Responding</p>
-          <p class="text-xs mt-1">Nurse is on the way to your room</p>
-        </div>
-      `;
+      status.innerHTML = `<div class="bg-green-50 border border-green-200 rounded-xl p-3 text-green-700">
+        <p class="font-semibold text-sm">✅ Nurse Responding</p>
+        <p class="text-xs mt-1">Nurse is on the way to your room</p>
+      </div>`;
     }, 4000);
-
   } catch (e) {
     status.innerHTML = `<p class="text-red-500">Error: ${e.message}</p>`;
   }
 });
 
-// =========================================================
-// EMERGENCY SOS
-// =========================================================
 document.getElementById("emergencyBtn").addEventListener("click", async () => {
   if (!confirm("🚨 Send EMERGENCY alert to doctor on duty?")) return;
-
   const call = {
     type: "emergency",
     patientId: userData.healthId,
@@ -260,7 +221,6 @@ document.getElementById("emergencyBtn").addEventListener("click", async () => {
     timestamp: new Date().toISOString(),
     status: "critical"
   };
-
   try {
     await updateDoc(doc(db, "users", currentUser.uid), {
       nurseCalls: arrayUnion(call)
@@ -271,9 +231,6 @@ document.getElementById("emergencyBtn").addEventListener("click", async () => {
   }
 });
 
-// =========================================================
-// DOWNLOAD QR
-// =========================================================
 document.getElementById("downloadQRBtn").addEventListener("click", () => {
   const canvas = document.getElementById("qrCanvas");
   const link = document.createElement("a");
@@ -282,15 +239,7 @@ document.getElementById("downloadQRBtn").addEventListener("click", () => {
   link.click();
 });
 
-// =========================================================
-// LOGOUT
-// =========================================================
 document.getElementById("logoutBtn").addEventListener("click", async () => {
   await signOut(auth);
   window.location.href = "index.html";
 });
-
-// =========================================================
-// EXPORT FOR AI SCANNER
-// =========================================================
-export { currentUser, userData, renderAll };
