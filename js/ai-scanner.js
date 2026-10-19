@@ -141,12 +141,12 @@ IMPORTANT:
     method: "POST",
     headers: {
       "Authorization": `Bearer ${OPENROUTER_API_KEY.trim()}`,
-      "HTTP-Referer": window.location.origin,
-      "X-Title": "Medical Prescription Scanner",
+      "HTTP-Referer": "https://localhost",
+      "X-Title": "IHMS Patient Portal",
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      model: "google/gemini-2.0-flash-exp:free",
+      model: "google/gemini-flash-1.5",
       messages: [
         {
           role: "user",
