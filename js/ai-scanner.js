@@ -120,11 +120,16 @@ Return ONLY the JSON object, nothing else.`;
       "X-Title": "IHMS Health App"
     },
     body: JSON.stringify({
-      // 🌟 এখানে একাধিক মডেলের তালিকা দেওয়া হলো
+      // 🌟 ৮টি ফ্রি ভিশন মডেল (ফেইল হলে একটার পর একটা চেষ্টা করবে)
       models: [
-        "google/gemma-4-26b-a4b-it:free",      // ১ম পছন্দ (নতুন এবং ফ্রি)
-        "nvidia/nemotron-nano-12b-v2-vl:free", // ২য় পছন্দ (ফেইল করলে এটি চলবে)
-        "google/gemma-3-12b-it:free"           // ৩য় পছন্দ (সর্বশেষ ভরসা)
+        "google/gemma-4-31b-it:free",
+        "google/gemma-4-26b-a4b-it:free",
+        "nvidia/nemotron-nano-12b-v2-vl:free",
+        "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+        "allenai/molmo-2-8b:free",
+        "google/gemma-3-12b-it:free",
+        "meta-llama/llama-3.2-11b-vision-instruct:free",
+        "microsoft/phi-3-vision-128k-instruct:free"
       ],
       messages: messages,
       temperature: 0.1
@@ -139,8 +144,7 @@ Return ONLY the JSON object, nothing else.`;
   }
 
   const data = await res.json();
-  // কোন মডেল উত্তর দিল তা কনসোল-এ দেখতে পাবে
-  console.log("Model used:", data.model);
+  console.log("Model used:", data.model); // F12 Console এ দেখবে কোন মডেল কাজ করেছে
   
   const text = data?.choices?.[0]?.message?.content || "";
   console.log("Raw AI Response:", text);
@@ -156,7 +160,7 @@ Return ONLY the JSON object, nothing else.`;
 }
 
 // =========================================================
-// 4. FILL FORM (আগের মতোই)
+// 4. FILL FORM
 // =========================================================
 function fillForm(d) {
   document.getElementById("aiDate").value = d.date || new Date().toISOString().split("T")[0];
@@ -184,7 +188,7 @@ function fillForm(d) {
 }
 
 // =========================================================
-// 5. SAVE TO FIRESTORE (আগের মতোই)
+// 5. SAVE TO FIRESTORE
 // =========================================================
 saveBtn?.addEventListener("click", async () => {
   if (!auth.currentUser) {
