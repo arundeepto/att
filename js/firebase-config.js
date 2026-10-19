@@ -14,3 +14,6 @@ const firebaseConfig = {
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+// আগের কোডগুলোর নিচে এই লাইনগুলো যোগ করো
+import { getAI, GoogleAIBackend } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-ai.js";
+export const ai = getAI(app, { backend: new GoogleAIBackend() });
