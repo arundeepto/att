@@ -1,8 +1,11 @@
 // js/ai-scanner.js
-import { auth, db, GEMINI_API_KEY, GEMINI_ENDPOINT } from "./firebase-config.js";
+import { auth, db, GEMINI_API_KEY } from "./firebase-config.js";
 import {
   doc, updateDoc, arrayUnion, getDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+// Google Official Gemini SDK directly from ESM CDN
+import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
 
 const dropZone = document.getElementById("dropZone");
 const fileInput = document.getElementById("fileInput");
@@ -87,7 +90,7 @@ scanBtn?.addEventListener("click", async () => {
   }
 
   try {
-    const extracted = await callGeminiVision(base64Image);
+    const extracted = await callGeminiSDK(base64Image);
 
     fillForm(extracted);
     if (scanStatus) {
@@ -106,12 +109,21 @@ scanBtn?.addEventListener("click", async () => {
 });
 
 // =========================================================
-// GEMINI VISION API CALL (Bearer Token Fixed)
+// GEMINI SDK CALL (Fixed for AQ. API Key)
 // =========================================================
-async function callGeminiVision(base64) {
+async function callGeminiSDK(base64) {
+  const genAI = new GoogleGenerativeAI(GEMINI_API_KEY.trim());
+  const model = genAI.getGenerativeModel({
+    model: "gemini-1.5-flash",
+    generationConfig: {
+      temperature: 0.1,
+      responseMimeType: "application/json"
+    }
+  });
+
   const prompt = `You are a medical prescription data extractor. Analyze this prescription image and extract the information.
 
-Return ONLY valid JSON with this exact structure:
+Return ONLY valid JSON matching this exact structure:
 {
   "date": "YYYY-MM-DD",
   "doctorName": "string",
@@ -133,35 +145,16 @@ IMPORTANT:
 - If a section is not visible, return empty array [] or empty string "".
 - Return ONLY raw JSON. No markdown.`;
 
-  const res = await fetch(GEMINI_ENDPOINT, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${GEMINI_API_KEY.trim()}` // 🟢 AQ. টোকেনের সঠিক ব্যবহার
-    },
-    body: JSON.stringify({
-      contents: [{
-        parts: [
-          { text: prompt },
-          { inline_data: { mime_type: "image/jpeg", data: base64 } }
-        ]
-      }],
-      generationConfig: {
-        temperature: 0.1,
-        maxOutputTokens: 2048,
-        responseMimeType: "application/json"
-      }
-    })
-  });
+  const imagePart = {
+    inlineData: {
+      data: base64,
+      mimeType: "image/jpeg"
+    }
+  };
 
-  if (!res.ok) {
-    const errText = await res.text();
-    console.error("Gemini API error:", errText);
-    throw new Error(`API error ${res.status}`);
-  }
-
-  const data = await res.json();
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  const result = await model.generateContent([prompt, imagePart]);
+  const response = await result.response;
+  const text = response.text();
 
   if (!text) throw new Error("Empty response from AI");
 
