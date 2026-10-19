@@ -1,6 +1,5 @@
 // js/ai-scanner.js
-import { auth, db, ai } from "./firebase-config.js";
-import { getGenerativeModel } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-ai.js";
+import { auth, db } from "./firebase-config.js";
 import {
   doc, updateDoc, arrayUnion, getDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -14,10 +13,9 @@ const saveBtn = document.getElementById("saveBtn");
 const scanStatus = document.getElementById("scanStatus");
 
 let base64Image = null;
-let currentMimeType = "image/jpeg";
 
 // =========================================================
-// 1. IMAGE UPLOAD HANDLER
+// 1. IMAGE UPLOAD HANDLER (এখন এটি কাজ করবে)
 // =========================================================
 dropZone?.addEventListener("click", () => fileInput.click());
 dropZone?.addEventListener("dragover", e => e.preventDefault());
@@ -39,12 +37,11 @@ function handleFile(file) {
     alert("Max file size 5MB");
     return;
   }
-  currentMimeType = file.type;
   const reader = new FileReader();
   reader.onload = ev => {
     previewImg.src = ev.target.result;
     previewBox.classList.remove("hidden");
-    base64Image = ev.target.result.split(",")[1];
+    base64Image = ev.target.result; // Base64 Data URI
     scanStatus.innerText = "✅ Image ready";
     scanStatus.className = "text-xs text-green-600 mt-2 text-center font-medium";
   };
@@ -52,7 +49,7 @@ function handleFile(file) {
 }
 
 // =========================================================
-// 2. AI EXTRACT (Using Firebase AI Logic)
+// 2. AI EXTRACT (Pollinations AI - No API Key Needed!)
 // =========================================================
 scanBtn?.addEventListener("click", async () => {
   if (!base64Image) {
@@ -61,13 +58,10 @@ scanBtn?.addEventListener("click", async () => {
   }
 
   scanBtn.disabled = true;
-  scanStatus.innerText = "🤖 AI analyzing... (5-10 sec)";
+  scanStatus.innerText = "🤖 AI analyzing... (10-15 sec)";
   scanStatus.className = "text-xs text-blue-600 mt-2 text-center font-medium";
 
   try {
-    // মডেল তৈরি করো
-    const model = getGenerativeModel(ai, { model: "gemini-2.5-flash" });
-
     const prompt = `You are a medical prescription reader.
 Extract information from this image and return ONLY valid JSON in this exact format:
 {
@@ -83,23 +77,36 @@ Do not include patient name.
 If a section is empty, return an empty array [].
 Return ONLY the JSON object, nothing else.`;
 
-    // ছবি এবং প্রম্পট একসাথে পাঠানো
-    const result = await model.generateContent([
-      prompt,
-      {
-        inlineData: {
-          data: base64Image,
-          mimeType: currentMimeType
-        }
-      }
-    ]);
+    // Pollinations AI - Open Source Free Vision API
+    const response = await fetch("https://text.pollinations.ai/openai", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "openai", // Pollinations uses OpenAI/GPT-4o-mini for vision
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: prompt },
+              { type: "image_url", image_url: { url: base64Image } }
+            ]
+          }
+        ]
+      })
+    });
 
-    const responseText = result.response.text();
-    console.log("Raw AI Response:", responseText);
+    if (!response.ok) {
+      throw new Error(`Server Error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const text = data?.choices?.[0]?.message?.content || "";
+    
+    console.log("Raw AI Response:", text);
 
     // JSON এক্সট্র্যাক্ট করা
-    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error("AI returned invalid format");
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error("AI returned invalid format. Try again.");
     
     const extracted = JSON.parse(jsonMatch[0]);
 
