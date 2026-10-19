@@ -65,7 +65,6 @@ scanBtn?.addEventListener("click", async () => {
   try {
     const extracted = await callGeminiVision(base64Image);
 
-    // Validate response — must have at least diagnosis or medications
     if (!extracted.diagnosis && (!extracted.medications || extracted.medications.length === 0)) {
       throw new Error("AI could not read prescription. Please try a clearer image.");
     }
@@ -116,9 +115,13 @@ IMPORTANT:
 - If a section is not visible, return empty array [] or empty string "".
 - Frequencies like "1-0-1" mean morning-noon-night.`;
 
-  const res = await fetch(`${GEMINI_ENDPOINT}?key=${GEMINI_API_KEY}`, {
+  // ✅ FIX 1: API key এখন header-এ যায় (?key= query নয়) — নতুন "AQ." key-এর জন্য
+  const res = await fetch(GEMINI_ENDPOINT, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "x-goog-api-key": GEMINI_API_KEY
+    },
     body: JSON.stringify({
       contents: [{
         parts: [
@@ -128,40 +131,60 @@ IMPORTANT:
       }],
       generationConfig: {
         temperature: 0.1,
-        maxOutputTokens: 2048,
-        responseMimeType: "application/json" // 🟢 JSON response নিশ্চিত করতে
+        // ✅ FIX 2: output কেটে যাওয়া ঠেকাতে বাড়ানো হয়েছে
+        maxOutputTokens: 8192,
+        responseMimeType: "application/json",
+        // ✅ FIX 3: thinking বন্ধ — token বাঁচে, JSON কাটে না (gemini-2.5-flash)
+        thinkingConfig: { thinkingBudget: 0 }
       }
     })
   });
 
   if (!res.ok) {
     const errText = await res.text();
-    console.error("Gemini API error response:", errText);
+    console.error("Gemini API error response:", res.status, errText);
 
-    if (res.status === 400) throw new Error("Image unclear or invalid. Please try a better photo.");
-    if (res.status === 403) throw new Error("API key invalid or restricted. Check Firebase config.");
+    if (res.status === 400) throw new Error("Bad request or unclear image. Check console for details.");
+    if (res.status === 401) throw new Error("API key rejected (401). Check console for details.");
+    if (res.status === 403) throw new Error("API key invalid or restricted (403).");
     if (res.status === 404) throw new Error("AI model not found. Check endpoint URL.");
     if (res.status === 429) throw new Error("Too many requests. Please wait 1 minute.");
     throw new Error(`API error ${res.status}`);
   }
 
   const data = await res.json();
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  const candidate = data?.candidates?.[0];
 
-  console.log("Raw AI response:", text);
+  if (!candidate) {
+    const reason = data?.promptFeedback?.blockReason;
+    throw new Error(reason ? `Request blocked: ${reason}` : "Empty AI response");
+  }
+
+  // ✅ FIX 4: সব text part জোড়া লাগানো (thought part বাদ দিয়ে)
+  const text = (candidate.content?.parts || [])
+    .filter(p => !p.thought && typeof p.text === "string")
+    .map(p => p.text)
+    .join("")
+    .trim();
+
+  console.log("Raw AI response:", text, "| finishReason:", candidate.finishReason);
 
   if (!text) throw new Error("Empty AI response");
 
   try {
     return JSON.parse(text);
   } catch (e) {
-    // Fallback in case of markdown text
     const start = text.indexOf("{");
     const end = text.lastIndexOf("}") + 1;
     if (start !== -1 && end > start) {
-      return JSON.parse(text.slice(start, end));
+      try {
+        return JSON.parse(text.slice(start, end));
+      } catch (_) { /* fall through */ }
     }
     console.error("JSON parse error:", text);
+    if (candidate.finishReason === "MAX_TOKENS") {
+      throw new Error("AI response was cut off. Try again.");
+    }
     throw new Error("AI returned malformed data. Try again.");
   }
 }
@@ -253,7 +276,7 @@ saveBtn?.addEventListener("click", async () => {
       return { drug: drug || "", reaction: reaction || "", severity: severity || "", addedAt: new Date().toISOString() };
     });
 
-    // 🟢 Firestore Update Fix: খালি Array থাকলে arrayUnion crash এড়ানো হয়েছে
+    // খালি array থাকলে arrayUnion crash করে, তাই শর্ত দিয়ে যোগ করা হয়েছে
     const updatePayload = {
       medicalHistory: arrayUnion(record)
     };
