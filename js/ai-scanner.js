@@ -49,7 +49,7 @@ function handleFile(file) {
 }
 
 // =========================================================
-// 2. AI EXTRACT (Upload to 0x0.st, then Pollinations AI)
+// 2. AI EXTRACT (Direct Base64 to Pollinations AI)
 // =========================================================
 scanBtn?.addEventListener("click", async () => {
   if (!base64Image) {
@@ -58,29 +58,10 @@ scanBtn?.addEventListener("click", async () => {
   }
 
   scanBtn.disabled = true;
-  scanStatus.innerText = "🖼️ Uploading image...";
+  scanStatus.innerText = "🤖 AI analyzing... (10-15 sec)";
   scanStatus.className = "text-xs text-blue-600 mt-2 text-center font-medium";
 
   try {
-    // ধাপ ১: ছবিটা ফ্রি হোস্টিং সাইটে আপলোড করা (Base64 থেকে Blob তৈরি)
-    const responseBlob = await fetch(base64Image);
-    const blob = await responseBlob.blob();
-    
-    const formData = new FormData();
-    formData.append("file", blob, "prescription.jpg");
-
-    const uploadRes = await fetch("https://0x0.st", {
-      method: "POST",
-      body: formData
-    });
-
-    if (!uploadRes.ok) throw new Error("Image upload failed");
-    const imageUrl = (await uploadRes.text()).trim();
-    console.log("Uploaded Image URL:", imageUrl);
-
-    scanStatus.innerText = "🤖 AI analyzing... (10-15 sec)";
-    
-    // ধাপ ২: Pollinations AI-কে পাবলিক লিংকটা পাঠানো
     const prompt = `You are a medical prescription reader.
 Extract information from this image and return ONLY valid JSON in this exact format:
 {
@@ -96,6 +77,7 @@ Do not include patient name.
 If a section is empty, return an empty array [].
 Return ONLY the JSON object, nothing else.`;
 
+    // Pollinations AI - Open Source Free Vision API
     const response = await fetch("https://text.pollinations.ai/openai", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -106,7 +88,7 @@ Return ONLY the JSON object, nothing else.`;
             role: "user",
             content: [
               { type: "text", text: prompt },
-              { type: "image_url", image_url: { url: imageUrl } } 
+              { type: "image_url", image_url: { url: base64Image } }
             ]
           }
         ]
@@ -114,7 +96,7 @@ Return ONLY the JSON object, nothing else.`;
     });
 
     if (!response.ok) {
-      throw new Error(`AI Server Error: ${response.status}`);
+      throw new Error(`Server Error: ${response.status}`);
     }
 
     const data = await response.json();
