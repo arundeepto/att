@@ -15,7 +15,7 @@ const scanStatus = document.getElementById("scanStatus");
 let base64Image = null;
 
 // =========================================================
-// 1. IMAGE UPLOAD HANDLER (এখন এটি কাজ করবে)
+// 1. IMAGE UPLOAD HANDLER
 // =========================================================
 dropZone?.addEventListener("click", () => fileInput.click());
 dropZone?.addEventListener("dragover", e => e.preventDefault());
@@ -49,7 +49,7 @@ function handleFile(file) {
 }
 
 // =========================================================
-// 2. AI EXTRACT (Pollinations AI - No API Key Needed!)
+// 2. AI EXTRACT (Upload to 0x0.st, then Pollinations AI)
 // =========================================================
 scanBtn?.addEventListener("click", async () => {
   if (!base64Image) {
@@ -58,10 +58,29 @@ scanBtn?.addEventListener("click", async () => {
   }
 
   scanBtn.disabled = true;
-  scanStatus.innerText = "🤖 AI analyzing... (10-15 sec)";
+  scanStatus.innerText = "🖼️ Uploading image...";
   scanStatus.className = "text-xs text-blue-600 mt-2 text-center font-medium";
 
   try {
+    // ধাপ ১: ছবিটা ফ্রি হোস্টিং সাইটে আপলোড করা (Base64 থেকে Blob তৈরি)
+    const responseBlob = await fetch(base64Image);
+    const blob = await responseBlob.blob();
+    
+    const formData = new FormData();
+    formData.append("file", blob, "prescription.jpg");
+
+    const uploadRes = await fetch("https://0x0.st", {
+      method: "POST",
+      body: formData
+    });
+
+    if (!uploadRes.ok) throw new Error("Image upload failed");
+    const imageUrl = (await uploadRes.text()).trim();
+    console.log("Uploaded Image URL:", imageUrl);
+
+    scanStatus.innerText = "🤖 AI analyzing... (10-15 sec)";
+    
+    // ধাপ ২: Pollinations AI-কে পাবলিক লিংকটা পাঠানো
     const prompt = `You are a medical prescription reader.
 Extract information from this image and return ONLY valid JSON in this exact format:
 {
@@ -77,18 +96,17 @@ Do not include patient name.
 If a section is empty, return an empty array [].
 Return ONLY the JSON object, nothing else.`;
 
-    // Pollinations AI - Open Source Free Vision API
     const response = await fetch("https://text.pollinations.ai/openai", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "openai", // Pollinations uses OpenAI/GPT-4o-mini for vision
+        model: "openai",
         messages: [
           {
             role: "user",
             content: [
               { type: "text", text: prompt },
-              { type: "image_url", image_url: { url: base64Image } }
+              { type: "image_url", image_url: { url: imageUrl } } 
             ]
           }
         ]
@@ -96,7 +114,7 @@ Return ONLY the JSON object, nothing else.`;
     });
 
     if (!response.ok) {
-      throw new Error(`Server Error: ${response.status}`);
+      throw new Error(`AI Server Error: ${response.status}`);
     }
 
     const data = await response.json();
@@ -120,7 +138,7 @@ Return ONLY the JSON object, nothing else.`;
 
   } catch (err) {
     console.error("AI Error:", err);
-    scanStatus.innerText = "❌ " + (err.message || "Failed to read. Check Internet.");
+    scanStatus.innerText = "❌ " + (err.message || "Failed to read. Try again.");
     scanStatus.className = "text-xs text-red-600 mt-2 text-center";
   } finally {
     scanBtn.disabled = false;
