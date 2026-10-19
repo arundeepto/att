@@ -19,5 +19,5 @@ export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 
-// 🌟 AI Logic Initialize (এখানে কোনো API Key লাগে না)
+// 🌟 AI Logic Initialize
 export const ai = getAI(app, { backend: new GoogleAIBackend() });
