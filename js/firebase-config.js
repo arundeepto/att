@@ -21,7 +21,7 @@ const firebaseConfig = {
 // Ti Groq API Key-m
 // firebase-config.js
 
-export const GEMINI_API_KEY = "AQ.Ab8RN6L-c4MhYxRsjHX38CPTdV4zs9wF5HXZb1gjVLZKNHUWXg";
+export const GEMINI_API_KEY = "AQ.Ab8RN6IKM6-LUq1G6TIOHftCTWR1UcYZqVMZ6zZuyGUi6CS3BA ";
 
 export const GEMINI_ENDPOINT =
   "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent";
