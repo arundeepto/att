@@ -1,5 +1,5 @@
 // js/ai-scanner.js
-import { auth, db, OPENROUTER_API_KEY } from "./firebase-config.js";
+import { auth, db, GEMINI_API_KEY } from "./firebase-config.js"; // OPENROUTER_API_KEY এর জায়গায় GEMINI_API_KEY ইমপোর্ট করুন
 import {
   doc, updateDoc, arrayUnion, getDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -87,7 +87,7 @@ scanBtn?.addEventListener("click", async () => {
   }
 
   try {
-    const extracted = await callOpenRouterAPI(base64Image);
+    const extracted = await callGeminiAPI(base64Image);
 
     fillForm(extracted);
     if (scanStatus) {
@@ -106,12 +106,14 @@ scanBtn?.addEventListener("click", async () => {
 });
 
 // =========================================================
-// OPENROUTER API CALL (Vision)
+// GEMINI API CALL (Official REST API)
 // =========================================================
-async function callOpenRouterAPI(base64) {
-  if (!OPENROUTER_API_KEY) {
-    throw new Error("OpenRouter API Key is missing");
+async function callGeminiAPI(base64) {
+  // নিশ্চিত করুন firebase-config.js ফাইলে GEMINI_API_KEY এক্সপোর্ট করা আছে
+  if (!window.GEMINI_API_KEY && typeof GEMINI_API_KEY === 'undefined') {
+    throw new Error("Gemini API Key is missing");
   }
+  const apiKey = typeof GEMINI_API_KEY !== 'undefined' ? GEMINI_API_KEY : window.GEMINI_API_KEY;
 
   const prompt = `You are a medical prescription data extractor. Analyze this prescription image and extract the information.
 
@@ -135,27 +137,25 @@ Return ONLY valid JSON matching this exact structure:
 IMPORTANT:
 - Do NOT include patient name.
 - If a section is not visible, return empty array [] or empty string "".
-- Return ONLY raw JSON. No markdown.`;
+- Return ONLY raw JSON. No markdown formatting or code blocks.`;
 
-  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+  // Gemini 2.5 Flash বা 1.5 Flash মডেল ব্যবহার করা হলো
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey.trim()}`;
+
+  const response = await fetch(url, {
     method: "POST",
     headers: {
-      "Authorization": `Bearer ${OPENROUTER_API_KEY.trim()}`,
-      "HTTP-Referer": "https://localhost",
-      "X-Title": "IHMS Patient Portal",
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      model: "google/gemini-flash-1.5",
-      messages: [
+      contents: [
         {
-          role: "user",
-          content: [
-            { type: "text", text: prompt },
+          parts: [
+            { text: prompt },
             {
-              type: "image_url",
-              image_url: {
-                url: `data:image/jpeg;base64,${base64}`
+              inline_data: {
+                mime_type: "image/jpeg",
+                data: base64
               }
             }
           ]
@@ -166,21 +166,27 @@ IMPORTANT:
 
   if (!response.ok) {
     const errData = await response.json();
-    throw new Error(errData.error?.message || "Failed to fetch from OpenRouter");
+    throw new Error(errData.error?.message || "Failed to fetch from Gemini API");
   }
 
   const data = await response.json();
-  const text = data.choices?.[0]?.message?.content;
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
   if (!text) throw new Error("Empty response from AI");
 
+  // ক্লিন করার জন্য যদি Markdown কোড ব্লক (```json ... ```) থাকে তা সরিয়ে ফেলা
+  let cleanText = text.trim();
+  if (cleanText.startsWith("```")) {
+    cleanText = cleanText.replace(/^```(json)?/, "").replace(/```$/, "").trim();
+  }
+
   try {
-    return JSON.parse(text);
+    return JSON.parse(cleanText);
   } catch (e) {
-    const start = text.indexOf("{");
-    const end = text.lastIndexOf("}") + 1;
+    const start = cleanText.indexOf("{");
+    const end = cleanText.lastIndexOf("}") + 1;
     if (start !== -1 && end > start) {
-      return JSON.parse(text.slice(start, end));
+      return JSON.parse(cleanText.slice(start, end));
     }
     throw new Error("Failed to parse JSON response");
   }
