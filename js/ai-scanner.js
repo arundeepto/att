@@ -1,5 +1,5 @@
 // js/ai-scanner.js
-import { auth, db, GROQ_API_KEY, GROQ_ENDPOINT } from "./firebase-config.js";
+import { auth, db, GEMINI_API_KEY, GEMINI_ENDPOINT } from "./firebase-config.js";
 import {
   doc, updateDoc, arrayUnion, getDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -15,7 +15,7 @@ const scanStatus = document.getElementById("scanStatus");
 let base64Image = null;
 
 // =========================================================
-// UPLOAD & AUTO COMPRESS FOR GROQ
+// UPLOAD & AUTO COMPRESS
 // =========================================================
 dropZone?.addEventListener("click", () => fileInput?.click());
 dropZone?.addEventListener("dragover", e => e.preventDefault());
@@ -37,11 +37,10 @@ function handleFile(file) {
   reader.onload = ev => {
     const img = new Image();
     img.onload = () => {
-      // Compress & Resize Image for Groq Vision (Max 800px)
       const canvas = document.createElement("canvas");
       let width = img.width;
       let height = img.height;
-      const maxDim = 800;
+      const maxDim = 1000;
 
       if (width > maxDim || height > maxDim) {
         if (width > height) {
@@ -58,8 +57,7 @@ function handleFile(file) {
       const ctx = canvas.getContext("2d");
       ctx.drawImage(img, 0, 0, width, height);
 
-      // Export low file-size base64 JPEG
-      const resizedDataUrl = canvas.toDataURL("image/jpeg", 0.7);
+      const resizedDataUrl = canvas.toDataURL("image/jpeg", 0.8);
       if (previewImg) previewImg.src = resizedDataUrl;
       if (previewBox) previewBox.classList.remove("hidden");
 
@@ -89,7 +87,7 @@ scanBtn?.addEventListener("click", async () => {
   }
 
   try {
-    const extracted = await callGroqVision(base64Image);
+    const extracted = await callGeminiVision(base64Image);
 
     fillForm(extracted);
     if (scanStatus) {
@@ -108,69 +106,73 @@ scanBtn?.addEventListener("click", async () => {
 });
 
 // =========================================================
-// GROQ VISION API CALL (Updated Model)
+// GEMINI VISION API CALL (Bearer Token Fixed)
 // =========================================================
-async function callGroqVision(base64) {
-  const prompt = `Extract prescription data into JSON.
-Structure:
+async function callGeminiVision(base64) {
+  const prompt = `You are a medical prescription data extractor. Analyze this prescription image and extract the information.
+
+Return ONLY valid JSON with this exact structure:
 {
   "date": "YYYY-MM-DD",
-  "doctorName": "",
-  "diagnosis": "",
-  "medications": [{"name":"","dosage":"","frequency":"","duration":""}],
-  "pastHistory": [{"condition":"","year":"","notes":""}],
-  "drugHistory": [{"drug":"","reaction":"","severity":""}],
-  "doctorNotes": ""
-}`;
+  "doctorName": "string",
+  "diagnosis": "string",
+  "medications": [
+    {"name":"","dosage":"","frequency":"","duration":""}
+  ],
+  "pastHistory": [
+    {"condition":"", "year":"", "notes":""}
+  ],
+  "drugHistory": [
+    {"drug":"", "reaction":"", "severity":""}
+  ],
+  "doctorNotes": "string"
+}
 
-  // Key formatting safety fix
-  let apiKey = GROQ_API_KEY ? GROQ_API_KEY.trim() : "";
-  if (apiKey.startsWith("Gsk_")) {
-    apiKey = "gsk_" + apiKey.slice(4);
-  }
+IMPORTANT:
+- Do NOT include patient name.
+- If a section is not visible, return empty array [] or empty string "".
+- Return ONLY raw JSON. No markdown.`;
 
-  const res = await fetch(GROQ_ENDPOINT, {
+  const res = await fetch(GEMINI_ENDPOINT, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${apiKey}`
+      "Authorization": `Bearer ${GEMINI_API_KEY.trim()}` // 🟢 AQ. টোকেনের সঠিক ব্যবহার
     },
     body: JSON.stringify({
-      model: "llama-3.2-90b-vision-preview", // 🟢 Updated active model
-      messages: [
-        {
-          role: "user",
-          content: [
-            { type: "text", text: prompt },
-            {
-              type: "image_url",
-              image_url: {
-                url: `data:image/jpeg;base64,${base64}`
-              }
-            }
-          ]
-        }
-      ],
-      temperature: 0.1,
-      max_tokens: 1000,
-      response_format: { type: "json_object" }
+      contents: [{
+        parts: [
+          { text: prompt },
+          { inline_data: { mime_type: "image/jpeg", data: base64 } }
+        ]
+      }],
+      generationConfig: {
+        temperature: 0.1,
+        maxOutputTokens: 2048,
+        responseMimeType: "application/json"
+      }
     })
   });
 
   if (!res.ok) {
-    const errorData = await res.json().catch(() => null);
-    const msg = errorData?.error?.message || `HTTP ${res.status}`;
-    throw new Error(`Groq Error: ${msg}`);
+    const errText = await res.text();
+    console.error("Gemini API error:", errText);
+    throw new Error(`API error ${res.status}`);
   }
 
   const data = await res.json();
-  const text = data?.choices?.[0]?.message?.content || "";
+  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
-  if (!text) throw new Error("Empty response from Groq");
+  if (!text) throw new Error("Empty response from AI");
 
   try {
     return JSON.parse(text);
   } catch (e) {
+    const start = text.indexOf("{");
+    const end = text.lastIndexOf("}") + 1;
+    if (start !== -1 && end > start) {
+      return JSON.parse(text.slice(start, end));
+    }
     throw new Error("Failed to parse JSON response");
   }
 }
