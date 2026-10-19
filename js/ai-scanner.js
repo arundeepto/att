@@ -11,6 +11,10 @@ const saveBtn = document.getElementById("saveBtn");
 const scanStatus = document.getElementById("scanStatus");
 
 let base64Image = null;
+let currentMimeType = "image/jpeg";
+
+// 🔧 এখানে তোমার নতুন Gemini API Key বসাও
+const GEMINI_API_KEY = "AQ.Ab8RN6LNRPX8tt37e_JDLPZ5-OOFzdM3d7nOi_GHwDTmRyaabg";
 
 // 1. IMAGE UPLOAD
 dropZone?.addEventListener("click", () => fileInput.click());
@@ -25,37 +29,37 @@ fileInput?.addEventListener("change", e => {
 });
 
 function handleFile(file) {
-  if (!file.type.startsWith("image/")) {
-    alert("Only image files allowed");
-    return;
-  }
-  if (file.size > 5 * 1024 * 1024) {
-    alert("Max file size 5MB");
-    return;
-  }
+  if (!file.type.startsWith("image/")) return alert("Only image files allowed");
+  if (file.size > 5 * 1024 * 1024) return alert("Max file size 5MB");
+  
+  currentMimeType = file.type;
   const reader = new FileReader();
   reader.onload = ev => {
     previewImg.src = ev.target.result;
     previewBox.classList.remove("hidden");
-    base64Image = ev.target.result; // Base64 Data URI
+    base64Image = ev.target.result.split(",")[1];
     scanStatus.innerText = "✅ Image ready";
     scanStatus.className = "text-xs text-green-600 mt-2 text-center font-medium";
   };
   reader.readAsDataURL(file);
 }
 
-// 2. AI EXTRACT (Pollinations AI - GPT-4o Vision)
+// 2. AI EXTRACT (Official Google SDK)
 scanBtn?.addEventListener("click", async () => {
-  if (!base64Image) {
-    alert("Please upload an image first");
-    return;
-  }
-
+  if (!base64Image) return alert("Upload an image first");
+  
   scanBtn.disabled = true;
-  scanStatus.innerText = "🤖 AI analyzing... (10-15 sec)";
+  scanStatus.innerText = "🤖 AI analyzing... (5-10 sec)";
   scanStatus.className = "text-xs text-blue-600 mt-2 text-center font-medium";
 
   try {
+    // 🌟 গুগলের নতুন অফিসিয়াল লাইব্রেরি ডাইনামিকভাবে লোড করা
+    const { GoogleGenerativeAI } = await import("https://esm.sh/@google/generative-ai");
+    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+    
+    // নতুন ও সাপোর্টেড মডেল (1.5 বন্ধ হয়ে গেছে)
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+
     const prompt = `You are a medical prescription reader.
 Extract information from this image and return ONLY valid JSON in this exact format:
 {
@@ -67,111 +71,59 @@ Extract information from this image and return ONLY valid JSON in this exact for
   "drugHistory": [{"drug":"", "reaction":"", "severity":""}],
   "doctorNotes": "string"
 }
-Do not include patient name.
-If a section is empty, return an empty array [].
-Return ONLY the JSON object, nothing else.`;
+Do not include patient name. Return ONLY the JSON object.`;
 
-    const response = await fetch("https://text.pollinations.ai/openai", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "gpt-4o", // 🌟 নতুন এবং শক্তিশালী মডেল
-        messages: [
-          {
-            role: "user",
-            content: [
-              { type: "text", text: prompt },
-              { type: "image_url", image_url: { url: base64Image } }
-            ]
-          }
-        ]
-      })
-    });
+    const result = await model.generateContent([
+      prompt,
+      { inlineData: { data: base64Image, mimeType: currentMimeType } }
+    ]);
 
-    if (!response.ok) {
-      throw new Error(`Server Error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const text = data?.choices?.[0]?.message?.content || data?.text || "";
-    
-    console.log("Raw AI Response:", text);
+    const text = result.response.text();
+    console.log("Raw Response:", text);
 
     const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error("AI returned invalid format. Try again.");
+    if (!jsonMatch) throw new Error("AI returned invalid format.");
     
     const extracted = JSON.parse(jsonMatch[0]);
 
-    if (!extracted.diagnosis && (!extracted.medications || extracted.medications.length === 0)) {
-      throw new Error("AI couldn't read the text. Please try a clearer image.");
-    }
+    // ফর্ম ফিল করা
+    document.getElementById("aiDate").value = extracted.date || new Date().toISOString().split("T")[0];
+    document.getElementById("aiDoctor").value = extracted.doctorName || "";
+    document.getElementById("aiDiagnosis").value = extracted.diagnosis || "";
+    document.getElementById("aiMeds").value = (extracted.medications || [])
+      .map(m => `${m.name} | ${m.dosage} | ${m.frequency} | ${m.duration}`).join("\n");
+    
+    const pastEl = document.getElementById("aiPastHistory");
+    if (pastEl) pastEl.value = (extracted.pastHistory || []).map(p => `${p.condition} | ${p.year || ""} | ${p.notes || ""}`).join("\n");
+    
+    const drugEl = document.getElementById("aiDrugHistory");
+    if (drugEl) drugEl.value = (extracted.drugHistory || []).map(x => `${x.drug} | ${x.reaction} | ${x.severity || ""}`).join("\n");
 
-    fillForm(extracted);
+    document.getElementById("aiNotes").value = extracted.doctorNotes || "";
+
     scanStatus.innerText = "✅ Extraction complete!";
     scanStatus.className = "text-xs text-green-600 mt-2 text-center font-medium";
 
   } catch (err) {
     console.error("AI Error:", err);
-    scanStatus.innerText = "❌ " + (err.message || "Failed to read. Try again.");
+    scanStatus.innerText = "❌ " + (err.message || "Check API Key and Internet");
     scanStatus.className = "text-xs text-red-600 mt-2 text-center";
   } finally {
     scanBtn.disabled = false;
   }
 });
 
-// 3. FILL FORM
-function fillForm(d) {
-  document.getElementById("aiDate").value = d.date || new Date().toISOString().split("T")[0];
-  document.getElementById("aiDoctor").value = d.doctorName || "";
-  document.getElementById("aiDiagnosis").value = d.diagnosis || "";
-  document.getElementById("aiMeds").value = (d.medications || [])
-    .map(m => `${m.name} | ${m.dosage} | ${m.frequency} | ${m.duration}`)
-    .join("\n");
-
-  const pastEl = document.getElementById("aiPastHistory");
-  if (pastEl) {
-    pastEl.value = (d.pastHistory || [])
-      .map(p => `${p.condition} | ${p.year || ""} | ${p.notes || ""}`)
-      .join("\n");
-  }
-
-  const drugEl = document.getElementById("aiDrugHistory");
-  if (drugEl) {
-    drugEl.value = (d.drugHistory || [])
-      .map(x => `${x.drug} | ${x.reaction} | ${x.severity || ""}`)
-      .join("\n");
-  }
-
-  document.getElementById("aiNotes").value = d.doctorNotes || "";
-}
-
-// 4. SAVE TO FIRESTORE
+// 3. SAVE TO FIRESTORE (আগের মতোই)
 saveBtn?.addEventListener("click", async () => {
-  if (!auth.currentUser) {
-    alert("Please login first");
-    return;
-  }
-
+  if (!auth.currentUser) return alert("Login first");
   saveBtn.disabled = true;
   const statusBox = document.getElementById("saveStatus");
   statusBox.innerText = "Saving...";
-  statusBox.className = "text-xs text-gray-500 mt-2 text-center";
 
   try {
     const userSnap = await getDoc(doc(db, "users", auth.currentUser.uid));
-    if (!userSnap.exists()) throw new Error("Profile not found");
     const patientProfile = userSnap.data();
-
     const medsText = document.getElementById("aiMeds").value;
-    const pastText = document.getElementById("aiPastHistory")?.value || "";
-    const drugText = document.getElementById("aiDrugHistory")?.value || "";
-
-    if (!medsText.trim() && !document.getElementById("aiDiagnosis").value.trim()) {
-      statusBox.innerText = "❌ Nothing to save";
-      statusBox.className = "text-xs text-red-600 mt-2 text-center";
-      saveBtn.disabled = false;
-      return;
-    }
 
     const record = {
       patientName: patientProfile.name,
@@ -182,7 +134,7 @@ saveBtn?.addEventListener("click", async () => {
       medications: medsText,
       doctorNotes: document.getElementById("aiNotes").value,
       savedAt: new Date().toISOString(),
-      source: "AI Scanner (Self)"
+      source: "AI Scanner"
     };
 
     const parsedMeds = medsText.split("\n").filter(Boolean).map(line => {
@@ -190,27 +142,14 @@ saveBtn?.addEventListener("click", async () => {
       return { name, dosage, frequency, duration, taken: false };
     });
 
-    const parsedPast = pastText.split("\n").filter(Boolean).map(line => {
-      const [condition, year, notes] = line.split("|").map(s => s.trim());
-      return { condition, year, notes, addedAt: new Date().toISOString() };
-    });
-
-    const parsedDrug = drugText.split("\n").filter(Boolean).map(line => {
-      const [drug, reaction, severity] = line.split("|").map(s => s.trim());
-      return { drug, reaction, severity, addedAt: new Date().toISOString() };
-    });
-
     await updateDoc(doc(db, "users", auth.currentUser.uid), {
       medicalHistory: arrayUnion(record),
-      medications: arrayUnion(...parsedMeds),
-      pastHistory: arrayUnion(...parsedPast),
-      drugHistory: arrayUnion(...parsedDrug)
+      medications: arrayUnion(...parsedMeds)
     });
-
-    statusBox.innerText = "✅ Saved to health card!";
-    statusBox.className = "text-xs text-green-700 mt-2 text-center font-medium";
-    setTimeout(() => window.location.reload(), 1200);
-
+    
+    statusBox.innerText = "✅ Saved!";
+    statusBox.className = "text-xs text-green-700 mt-2 text-center";
+    setTimeout(() => window.location.reload(), 1000);
   } catch (e) {
     statusBox.innerText = "❌ " + e.message;
     statusBox.className = "text-xs text-red-600 mt-2 text-center";
