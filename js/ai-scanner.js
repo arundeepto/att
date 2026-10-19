@@ -109,12 +109,12 @@ scanBtn?.addEventListener("click", async () => {
 });
 
 // =========================================================
-// GEMINI SDK CALL (Fixed for AQ. API Key)
+// GEMINI SDK CALL (Updated to gemini-3.8-flash)
 // =========================================================
 async function callGeminiSDK(base64) {
   const genAI = new GoogleGenerativeAI(GEMINI_API_KEY.trim());
   const model = genAI.getGenerativeModel({
-    model: "gemini-1.5-flash",
+    model: "gemini-3.8-flash",
     generationConfig: {
       temperature: 0.1,
       responseMimeType: "application/json"
