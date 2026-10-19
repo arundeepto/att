@@ -19,7 +19,7 @@ const firebaseConfig = {
 // firebase-config.js
 
 // Ti Groq API Key-m
-export const GROQ_API_KEY = "Gsk_aIA7pnJcgtM00jcLmkqmWGdyb3FYhJOB0Qo2st0RxiTlOmLQIBnQ"; 
+export const GROQ_API_KEY = "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"; 
 
 // Ti Groq API Endpoint URL
 export const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
