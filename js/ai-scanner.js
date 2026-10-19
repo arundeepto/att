@@ -1,5 +1,5 @@
 // js/ai-scanner.js
-import { auth, db, GEMINI_API_KEY } from "./firebase-config.js";
+import { auth, db, GROQ_API_KEY, GROQ_ENDPOINT } from "./firebase-config.js";
 import {
   doc, updateDoc, arrayUnion, getDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -49,7 +49,7 @@ function handleFile(file) {
 }
 
 // =========================================================
-// AI EXTRACT
+// AI EXTRACT (Groq Vision)
 // =========================================================
 scanBtn?.addEventListener("click", async () => {
   if (!base64Image) {
@@ -58,13 +58,14 @@ scanBtn?.addEventListener("click", async () => {
   }
   scanBtn.disabled = true;
   if (scanStatus) {
-    scanStatus.innerText = "🤖 AI analyzing prescription...";
+    scanStatus.innerText = "🤖 AI analyzing prescription via Groq...";
     scanStatus.className = "text-xs text-gray-500 mt-2 text-center";
   }
 
   try {
-    const extracted = await callGeminiVision(base64Image);
+    const extracted = await callGroqVision(base64Image);
 
+    // Validate response — must have at least diagnosis or medications
     if (!extracted.diagnosis && (!extracted.medications || extracted.medications.length === 0)) {
       throw new Error("AI could not read prescription. Please try a clearer image.");
     }
@@ -79,8 +80,6 @@ scanBtn?.addEventListener("click", async () => {
     if (scanStatus) {
       scanStatus.innerText = "❌ " + (err.message || "Failed to read prescription");
       scanStatus.className = "text-xs text-red-600 mt-2 text-center";
-      scanStatus.style.whiteSpace = "pre-wrap";
-      scanStatus.style.wordBreak = "break-word";
     }
   } finally {
     scanBtn.disabled = false;
@@ -88,16 +87,12 @@ scanBtn?.addEventListener("click", async () => {
 });
 
 // =========================================================
-// GEMINI VISION API CALL
+// GROQ VISION API CALL
 // =========================================================
-const API_BASE = "https://generativelanguage.googleapis.com/v1beta/models/";
-// একটা না চললে পরেরটা নিজে থেকেই চেষ্টা করবে
-const MODELS = ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-2.5-flash"];
-
-async function callGeminiVision(base64) {
+async function callGroqVision(base64) {
   const prompt = `You are a medical prescription data extractor. Analyze this prescription image and extract the information.
 
-Return JSON with this EXACT structure:
+Return ONLY valid JSON matching this exact schema:
 {
   "date": "YYYY-MM-DD",
   "doctorName": "string",
@@ -115,102 +110,60 @@ Return JSON with this EXACT structure:
 }
 
 IMPORTANT:
-- Do NOT include patient name.
+- Do NOT include patient name (the scanning user IS the patient).
 - pastHistory = any PAST illnesses, diseases, surgeries mentioned in the prescription.
 - drugHistory = any DRUG ALLERGIES or adverse reactions mentioned.
 - If a section is not visible, return empty array [] or empty string "".
-- Frequencies like "1-0-1" mean morning-noon-night.`;
+- Frequencies like "1-0-1" mean morning-noon-night.
+- Output pure JSON only.`;
 
-  const body = JSON.stringify({
-    contents: [{
-      parts: [
-        { text: prompt },
-        { inline_data: { mime_type: currentMimeType, data: base64 } }
-      ]
-    }],
-    generationConfig: {
+  const res = await fetch(GROQ_ENDPOINT, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${GROQ_API_KEY}`
+    },
+    body: JSON.stringify({
+      model: "llama-3.2-90b-vision-preview", // Groq-এর সেরা Vision মডেল
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: prompt },
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:${currentMimeType};base64,${base64}`
+              }
+            }
+          ]
+        }
+      ],
       temperature: 0.1,
-      maxOutputTokens: 8192,
-      responseMimeType: "application/json"
-    }
+      response_format: { type: "json_object" } // নিশ্চিত ১০০% সঠিক JSON আউটপুট
+    })
   });
 
-  const attempts = [];
+  if (!res.ok) {
+    const errText = await res.text();
+    console.error("Groq API error response:", errText);
 
-  for (const model of MODELS) {
-    for (const mode of ["header", "query"]) {
-      const url = `${API_BASE}${model}:generateContent` +
-        (mode === "query" ? `?key=${encodeURIComponent(GEMINI_API_KEY)}` : "");
-      const headers = { "Content-Type": "application/json" };
-      if (mode === "header") headers["x-goog-api-key"] = GEMINI_API_KEY;
-
-      let res;
-      try {
-        res = await fetch(url, { method: "POST", headers, body });
-      } catch (netErr) {
-        attempts.push(`${model}: network error (internet/CORS)`);
-        break; // পরের model চেষ্টা করো
-      }
-
-      if (res.ok) {
-        console.log("Gemini OK with", model, mode);
-        return parseGeminiResponse(await res.json());
-      }
-
-      const info = await readApiError(res);
-      console.error("Gemini error:", model, mode, info);
-      attempts.push(`${model} (${mode}): ${info}`);
-
-      if (res.status === 429) throw new Error("Too many requests. Please wait 1 minute.");
-      // 401/403 হলে অন্য auth পদ্ধতি চেষ্টা করবে; 400/404 হলে সরাসরি পরের model
-      if (res.status !== 401 && res.status !== 403) break;
-    }
+    if (res.status === 401) throw new Error("Invalid Groq API Key. Check firebase-config.js.");
+    if (res.status === 429) throw new Error("Rate limit exceeded. Try again in a minute.");
+    throw new Error(`Groq API error ${res.status}`);
   }
 
-  const all401 = attempts.length && attempts.every(a => a.includes(": 401") || a.includes(": 403"));
-  const hint = all401
-    ? "\n\n👉 API key রিজেক্ট হচ্ছে। AI Studio-তে নতুন project দিয়ে নতুন key বানাও।"
-    : "";
-  throw new Error("AI call failed:\n" + attempts.join("\n") + hint);
-}
+  const data = await res.json();
+  const text = data?.choices?.[0]?.message?.content || "";
 
-async function readApiError(res) {
-  const raw = await res.text();
-  try {
-    const e = JSON.parse(raw).error || {};
-    const reason = (e.details || []).find(d => d.reason)?.reason || "";
-    return `${res.status} ${e.status || ""} ${reason} ${(e.message || "").slice(0, 100)}`
-      .replace(/\s+/g, " ").trim();
-  } catch (_) {
-    return `${res.status} ${raw.slice(0, 120)}`;
-  }
-}
+  console.log("Raw AI response:", text);
 
-function parseGeminiResponse(data) {
-  const candidate = data?.candidates?.[0];
-  if (!candidate) {
-    const reason = data?.promptFeedback?.blockReason;
-    throw new Error(reason ? `Request blocked: ${reason}` : "Empty AI response");
-  }
-
-  const text = (candidate.content?.parts || [])
-    .filter(p => !p.thought && typeof p.text === "string")
-    .map(p => p.text)
-    .join("")
-    .trim();
-
-  console.log("Raw AI response:", text, "| finishReason:", candidate.finishReason);
   if (!text) throw new Error("Empty AI response");
 
   try {
     return JSON.parse(text);
   } catch (e) {
-    const start = text.indexOf("{");
-    const end = text.lastIndexOf("}") + 1;
-    if (start !== -1 && end > start) {
-      try { return JSON.parse(text.slice(start, end)); } catch (_) { /* fall through */ }
-    }
-    if (candidate.finishReason === "MAX_TOKENS") throw new Error("AI response was cut off. Try again.");
+    console.error("JSON parse error:", text);
     throw new Error("AI returned malformed data. Try again.");
   }
 }
@@ -247,7 +200,7 @@ function fillForm(d) {
 }
 
 // =========================================================
-// SAVE
+// SAVE (Self / Auto Profile Name)
 // =========================================================
 saveBtn?.addEventListener("click", async () => {
   if (!auth.currentUser) {
@@ -302,7 +255,7 @@ saveBtn?.addEventListener("click", async () => {
       return { drug: drug || "", reaction: reaction || "", severity: severity || "", addedAt: new Date().toISOString() };
     });
 
-    // খালি array থাকলে arrayUnion crash করে, তাই শর্ত দিয়ে যোগ করা হয়েছে
+    // Firestore Update Payload (খালি array এরর রোধের জন্য)
     const updatePayload = {
       medicalHistory: arrayUnion(record)
     };
