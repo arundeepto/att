@@ -19,10 +19,12 @@ const firebaseConfig = {
 // firebase-config.js
 
 // Ti Groq API Key-m
-export const GROQ_API_KEY = "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"; 
+// firebase-config.js
 
-// Ti Groq API Endpoint URL
-export const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
+export const GEMINI_API_KEY = "AQ.Ab8RN6KDcpFDxtgz9S5NzrKOxIQcfDhU_cA-vSvwT07MzXhBXw";
+
+export const GEMINI_ENDPOINT =
+  "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
 
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
