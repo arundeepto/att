@@ -1,5 +1,6 @@
 // js/ai-scanner.js
-import { auth, db } from "./firebase-config.js";
+import { auth, db, ai } from "./firebase-config.js";
+import { getGenerativeModel } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-ai.js";
 import { 
   doc, updateDoc, arrayUnion, getDoc 
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -13,9 +14,10 @@ const saveBtn = document.getElementById("saveBtn");
 const scanStatus = document.getElementById("scanStatus");
 
 let base64Image = null;
+let currentMimeType = "image/jpeg";
 
 // =========================================================
-// 1. IMAGE UPLOAD HANDLER
+// 1. IMAGE UPLOAD
 // =========================================================
 dropZone?.addEventListener("click", () => fileInput.click());
 dropZone?.addEventListener("dragover", e => e.preventDefault());
@@ -37,11 +39,12 @@ function handleFile(file) {
     alert("Max file size 5MB");
     return;
   }
+  currentMimeType = file.type;
   const reader = new FileReader();
   reader.onload = ev => {
     previewImg.src = ev.target.result;
     previewBox.classList.remove("hidden");
-    base64Image = ev.target.result; // Base64 Data URI
+    base64Image = ev.target.result.split(",")[1]; // Base64 ডেটা
     scanStatus.innerText = "✅ Image ready";
     scanStatus.className = "text-xs text-green-600 mt-2 text-center font-medium";
   };
@@ -49,7 +52,7 @@ function handleFile(file) {
 }
 
 // =========================================================
-// 2. AI EXTRACT (OpenRouter with Live Free Vision Models)
+// 2. AI EXTRACT (Using Firebase AI Logic)
 // =========================================================
 scanBtn?.addEventListener("click", async () => {
   if (!base64Image) {
@@ -58,10 +61,13 @@ scanBtn?.addEventListener("click", async () => {
   }
 
   scanBtn.disabled = true;
-  scanStatus.innerText = "🤖 AI analyzing... (wait 10-20 sec)";
+  scanStatus.innerText = "🤖 AI analyzing... (5-10 sec)";
   scanStatus.className = "text-xs text-blue-600 mt-2 text-center font-medium";
 
   try {
+    // 🌟 Firebase AI Logic মডেল তৈরি
+    const model = getGenerativeModel(ai, { model: "gemini-2.5-flash" });
+
     const prompt = `You are a medical prescription reader.
 Extract information from this image and return ONLY valid JSON in this exact format:
 {
@@ -77,86 +83,25 @@ Do not include patient name.
 If a section is empty, return an empty array [].
 Return ONLY the JSON object, nothing else.`;
 
-    const messages = [
+    // 🌟 ছবি এবং প্রম্পট একসাথে পাঠানো
+    const result = await model.generateContent([
+      prompt,
       {
-        role: "user",
-        content: [
-          { type: "text", text: prompt },
-          { type: "image_url", image_url: { url: base64Image } }
-        ]
+        inlineData: {
+          data: base64Image,
+          mimeType: currentMimeType
+        }
       }
-    ];
+    ]);
 
-    // 🌟 তোমার OpenRouter API Key (আগেরটা)
-    const OPENROUTER_API_KEY = "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"; 
+    const responseText = result.response.text();
+    console.log("Raw AI Response:", responseText);
 
-    // 🌟 বর্তমানে লাইভ থাকা ফ্রি ভিশন মডেলের লিস্ট
-    const modelList = [
-      "google/gemma-4-26b-a4b-it:free",
-      "google/gemma-4-31b-it:free",
-      "nvidia/nemotron-nano-12b-v2-vl:free",
-      "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
-      "allenai/molmo-2-8b:free",
-      "nvidia/nemotron-3.5-super-vl:free"
-    ];
-
-    let lastError = "No models available";
-    let extracted = null;
-
-    // 🔄 একটার পর একটা মডেল ট্রাই করবে
-    for (const modelId of modelList) {
-      try {
-        console.log(`Trying model: ${modelId}`);
-        
-        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-            "Content-Type": "application/json",
-            "HTTP-Referer": "https://ihms-bd.web.app",
-            "X-Title": "IHMS Health App"
-          },
-          body: JSON.stringify({
-            model: modelId,
-            messages: messages,
-            temperature: 0.1
-          })
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          console.warn(`❌ ${modelId} failed:`, errorData);
-          lastError = errorData.error?.message || response.status;
-          continue; // পরের মডেলে যাবে
-        }
-
-        const data = await response.json();
-        const text = data?.choices?.[0]?.message?.content || "";
-        
-        if (!text) {
-          lastError = "Empty response";
-          continue;
-        }
-
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) {
-          lastError = "Invalid JSON format";
-          continue;
-        }
-
-        extracted = JSON.parse(jsonMatch[0]);
-        console.log(`✅ Success with: ${modelId}`);
-        break; // সফল হলে লুপ থেকে বের হয়ে যাবে
-
-      } catch (e) {
-        console.warn(`❌ ${modelId} error:`, e.message);
-        lastError = e.message;
-      }
-    }
-
-    if (!extracted) {
-      throw new Error(`All models failed. Last error: ${lastError}`);
-    }
+    // JSON এক্সট্র্যাক্ট করা
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error("AI returned invalid format. Try again.");
+    
+    const extracted = JSON.parse(jsonMatch[0]);
 
     if (!extracted.diagnosis && (!extracted.medications || extracted.medications.length === 0)) {
       throw new Error("AI couldn't read the text. Please try a clearer image.");
@@ -168,7 +113,7 @@ Return ONLY the JSON object, nothing else.`;
 
   } catch (err) {
     console.error("AI Error:", err);
-    scanStatus.innerText = "❌ " + (err.message || "Failed to read. Try again.");
+    scanStatus.innerText = "❌ " + (err.message || "Failed to read. Check Internet.");
     scanStatus.className = "text-xs text-red-600 mt-2 text-center";
   } finally {
     scanBtn.disabled = false;
