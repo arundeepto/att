@@ -12,7 +12,8 @@ const firebaseConfig = {
   };
 
 // Gemini API Key
-export const GEMINI_API_KEY = "AQ.Ab8RN6J2MJ4BLaNQkwUDOOC5wcnMD-olyR_AT1vLB28zPifcJQ";
+export const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+
 
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
