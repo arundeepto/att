@@ -106,6 +106,12 @@ scanBtn?.addEventListener("click", async () => {
 // কোডে কোনো Gemini API key নেই, তাই GitHub-এ দিলেও key delete হবে না
 // =========================================================
 const SDK_VERSIONS = ["12.0.0", "11.10.0"];
+
+// 👉 reCAPTCHA Enterprise (Fraud Defense) "Site key" এখানে বসাও (public key, GitHub-এ থাকলে সমস্যা নেই)
+const RECAPTCHA_SITE_KEY = "6Lfic_ctAAAAAGOIFFZyeXLCkYNlUB0Ywwlo-ZQ_";
+
+// ঐচ্ছিক (শুধু জরুরি বিকল্প): App Check debug token। খালি রাখলে ব্যবহার হবে না।
+const APPCHECK_DEBUG_TOKEN = "";
 const MODELS = ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-2.5-flash"];
 
 const PROMPT = `You are an expert at reading medical prescriptions (printed and handwritten, English and Bengali). Read the image very carefully, zoom into every line, and extract the information.
@@ -146,11 +152,12 @@ async function loadAiModules() {
   for (const v of SDK_VERSIONS) {
     try {
       const base = `https://www.gstatic.com/firebasejs/${v}/`;
-      const [appMod, aiMod] = await Promise.all([
+      const [appMod, aiMod, acMod] = await Promise.all([
         import(base + "firebase-app.js"),
-        import(base + "firebase-ai.js")
+        import(base + "firebase-ai.js"),
+        import(base + "firebase-app-check.js")
       ]);
-      _mods = { appMod, aiMod };
+      _mods = { appMod, aiMod, acMod };
       return _mods;
     } catch (e) {
       lastErr = e;
@@ -161,7 +168,7 @@ async function loadAiModules() {
 
 async function getAiInstance() {
   if (_ai) return _ai;
-  const { appMod, aiMod } = await loadAiModules();
+  const { appMod, aiMod, acMod } = await loadAiModules();
   const opts = cfg.firebaseConfig || cfg.app?.options;
   if (!opts) {
     throw new Error("firebase-config.js থেকে firebaseConfig export করা নেই। `const firebaseConfig` এর সামনে `export` বসাও।");
@@ -169,6 +176,19 @@ async function getAiInstance() {
   let app;
   try { app = appMod.getApp("ai-scanner"); }
   catch (_) { app = appMod.initializeApp(opts, "ai-scanner"); }
+  // App Check: Firebase AI Logic-এর জন্য বাধ্যতামূলক
+  if (APPCHECK_DEBUG_TOKEN) self.FIREBASE_APPCHECK_DEBUG_TOKEN = APPCHECK_DEBUG_TOKEN;
+  if (!APPCHECK_DEBUG_TOKEN && (!RECAPTCHA_SITE_KEY || RECAPTCHA_SITE_KEY.startsWith("PASTE"))) {
+    throw new Error("reCAPTCHA Site key দেওয়া হয়নি। ai-scanner.js-এর RECAPTCHA_SITE_KEY-তে বসাও।");
+  }
+  try {
+    acMod.initializeAppCheck(app, {
+      provider: new acMod.ReCaptchaEnterpriseProvider(RECAPTCHA_SITE_KEY || "debug"),
+      isTokenAutoRefreshEnabled: true
+    });
+  } catch (e) {
+    if (!/already/i.test(String(e?.message || e))) throw e; // একবার init হয়ে থাকলে সমস্যা নেই
+  }
   _ai = aiMod.getAI(app, { backend: new aiMod.GoogleAIBackend() });
   return _ai;
 }
@@ -196,7 +216,7 @@ async function callGeminiVision(base64) {
       console.log("Gemini OK with", model, text);
       return parseJsonText(text);
     } catch (e) {
-      const msg = String(e?.message || e).replace(/\s+/g, " ").slice(0, 160);
+      const msg = String(e?.message || e).replace(/\s+/g, " ").slice(0, 400);
       console.error("Gemini error:", model, e);
       attempts.push(`${model}: ${msg}`);
       if (/quota|429|RESOURCE_EXHAUSTED/i.test(msg)) break;
@@ -205,7 +225,7 @@ async function callGeminiVision(base64) {
 
   throw new Error(
     "AI call failed:\n" + attempts.join("\n") +
-    "\n\n👉 Firebase console → AI Logic → Get started (Gemini Developer API) চালু আছে কি না দেখো।"
+    "\n\n👉 Firebase console → App Check → APIs → Firebase AI Logic → Enforce করা আছে কি না, আর App Check-এ reCAPTCHA Enterprise (Fraud Defense) register করা আছে কি না দেখো।"
   );
 }
 
