@@ -1,4 +1,3 @@
-// js/patient.js
 import { auth, db } from "./firebase-config.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { doc, getDoc, updateDoc, arrayUnion, collection, query, where, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -37,21 +36,12 @@ onAuthStateChanged(auth, async (user) => {
 
 // ===== RENDER UI =====
 function renderUI(data) {
-  // ১. QR কোড জেনারেট করা (লাইব্রেরি লোড না হলে অপেক্ষা করবে)
-  const generateQR = () => {
-    if (typeof QRCode !== 'undefined') {
-      try {
-        QRCode.toCanvas(
-          document.getElementById("qrCanvas"), 
-          data.healthId || "IHMS-0000",
-          { width: 96, margin: 1, color: { dark: "#006a4e", light: "#ffffff" } }
-        );
-      } catch (e) { console.error("QR Error:", e); }
-    } else {
-      setTimeout(generateQR, 200);
-    }
-  };
-  generateQR();
+  // 🌟 ১. QR কোড ইমেজ (Google Chart API - কোনো লাইব্রেরি লাগে না)
+  if (data.healthId) {
+    const qrUrl = `https://chart.googleapis.com/chart?chs=150x150&cht=qr&chl=${encodeURIComponent(data.healthId)}&choe=UTF-8`;
+    const qrImg = document.getElementById("qrImage");
+    if (qrImg) qrImg.src = qrUrl;
+  }
 
   // ২. কার্ডে ডেটা বসানো
   document.getElementById("cardPatientName").innerText = data.name || "Unknown Patient";
@@ -115,7 +105,7 @@ function renderUI(data) {
 document.getElementById("downloadCardBtn")?.addEventListener("click", () => {
   const card = document.getElementById("downloadCardArea");
   if (typeof html2canvas !== 'undefined') {
-    html2canvas(card, { scale: 2 }).then(canvas => {
+    html2canvas(card, { scale: 2, useCORS: true }).then(canvas => {
       const link = document.createElement("a");
       link.download = `${userData.healthId}-Health-Card.png`;
       link.href = canvas.toDataURL("image/png");
