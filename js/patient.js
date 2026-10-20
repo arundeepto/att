@@ -1,4 +1,3 @@
-// js/patient.js
 import { auth, db } from "./firebase-config.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { doc, getDoc, updateDoc, arrayUnion, collection, query, where, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -37,11 +36,26 @@ onAuthStateChanged(auth, async (user) => {
 
 // ===== RENDER UI =====
 function renderUI(data) {
-  // 🌟 ১. QR কোড ইমেজ (QuickChart API - ১০০% কাজ করবে)
-  if (data.healthId) {
-    const qrUrl = `https://quickchart.io/qr?text=${encodeURIComponent(data.healthId)}&size=150&margin=1&ecLevel=H`;
-    const qrImg = document.getElementById("qrImage");
-    if (qrImg) qrImg.src = qrUrl;
+  // 🌟 ১. QR কোড জেনারেট (নিজস্ব লাইব্রেরি দিয়ে, লোড হওয়া পর্যন্ত অপেক্ষা করবে)
+  const qrContainer = document.getElementById("qrcode");
+  if (qrContainer && data.healthId) {
+    qrContainer.innerHTML = ""; // ক্লিয়ার করা
+
+    const generateQR = () => {
+      if (typeof QRCode !== 'undefined') {
+        new QRCode(qrContainer, {
+          text: data.healthId,
+          width: 90,
+          height: 90,
+          colorDark: "#006a4e",
+          colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.H
+        });
+      } else {
+        setTimeout(generateQR, 300); // লাইব্রেরি না এলে আবার চেষ্টা করবে
+      }
+    };
+    generateQR();
   }
 
   // ২. কার্ডে ডেটা বসানো
