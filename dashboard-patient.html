@@ -6,9 +6,7 @@
 <meta name="theme-color" content="#006a4e" />
 <title>Health Portal · IHMS</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<!-- 🌟 QRCode লাইব্রেরি -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<!-- 🌟 html2canvas লাইব্রেরি -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <link rel="stylesheet" href="css/style.css" />
 </head>
@@ -45,49 +43,58 @@
   <section id="tab-home" class="tab-panel">
     <div class="grid lg:grid-cols-3 gap-4 md:gap-6">
       
+      <!-- 🌟 নতুন হালকা কালারের হেলথ কার্ড -->
       <div class="lg:col-span-1">
-        <div id="downloadCardArea" class="bg-gradient-to-br from-[#006a4e] to-[#00875a] text-white rounded-2xl shadow-xl p-5 relative overflow-hidden">
-          <div class="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-white opacity-10 rounded-full"></div>
-          <div class="absolute bottom-0 left-0 -ml-8 -mb-8 w-24 h-24 bg-white opacity-10 rounded-full"></div>
+        <div id="downloadCardArea" class="bg-gradient-to-br from-blue-50 to-indigo-50 text-gray-800 rounded-2xl shadow-xl p-5 relative overflow-hidden border border-blue-100">
+          
+          <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-blue-100 opacity-50 rounded-full"></div>
 
-          <div class="relative z-10 flex justify-between items-start mb-4">
-            <div>
-              <h1 class="text-xl font-bold tracking-wide">IHMS Card</h1>
-              <p class="text-[10px] text-green-200">Integrated Health-care Management System</p>
+          <!-- 🌟 লোগো সেকশন -->
+          <div class="relative z-10 flex justify-between items-center mb-4 border-b border-blue-200 pb-3">
+            <img src="assets/npmc.jpg" alt="NMC Logo" class="h-10 w-auto object-contain rounded-md" onerror="this.style.display='none'">
+            <div class="text-center flex-1">
+              <h1 class="text-lg font-extrabold text-[#0d4d8b] tracking-wide leading-tight">IHMS Card</h1>
+              <p class="text-[9px] text-blue-500 font-medium tracking-widest">HEALTH PORTAL</p>
             </div>
-            <div class="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center text-lg">⚕️</div>
+            <img src="assets/zrf.jpg" alt="ZRF Logo" class="h-10 w-auto object-contain rounded-md" onerror="this.style.display='none'">
           </div>
 
+          <!-- ইনফো সেকশন -->
           <div class="relative z-10 flex items-end justify-between gap-3 mt-6">
             <div>
-              <p class="text-[10px] text-green-200 uppercase tracking-wider mb-1">Patient Name</p>
-              <p id="cardPatientName" class="font-bold text-lg leading-tight mb-3">—</p>
+              <p class="text-[10px] text-blue-400 uppercase tracking-wider mb-1">Patient Name</p>
+              <p id="cardPatientName" class="font-bold text-lg leading-tight mb-3 text-gray-900">—</p>
 
-              <p class="text-[10px] text-green-200 uppercase tracking-wider mb-1">Health ID</p>
-              <p id="cardHealthId" class="font-mono text-sm font-medium tracking-widest">—</p>
+              <p class="text-[10px] text-blue-400 uppercase tracking-wider mb-1">Health ID</p>
+              <p id="cardHealthId" class="font-mono text-sm font-bold text-[#0d4d8b] tracking-widest">—</p>
               
               <div class="flex gap-4 mt-3">
                 <div>
-                  <p class="text-[10px] text-green-200 uppercase">Blood</p>
-                  <p id="cardBloodGroup" class="font-bold text-sm">—</p>
+                  <p class="text-[10px] text-blue-400 uppercase">Blood</p>
+                  <p id="cardBloodGroup" class="font-bold text-sm text-gray-800">—</p>
                 </div>
                 <div>
-                  <p class="text-[10px] text-green-200 uppercase">Age</p>
-                  <p id="cardAge" class="font-bold text-sm">—</p>
+                  <p class="text-[10px] text-blue-400 uppercase">Age</p>
+                  <p id="cardAge" class="font-bold text-sm text-gray-800">—</p>
                 </div>
               </div>
             </div>
             
-            <!-- 🌟 QR Code Container -->
-            <div id="qrcode" class="bg-white p-1 rounded-xl shadow-inner w-24 h-24 flex items-center justify-center overflow-hidden"></div>
+            <!-- QR Code Container -->
+            <div class="bg-white p-1.5 rounded-xl shadow-md border border-blue-100 w-24 h-24 flex items-center justify-center overflow-hidden">
+              <div id="qrcode"></div>
+            </div>
           </div>
+
+          <p class="relative z-10 text-[8px] text-center text-blue-400 mt-4 uppercase tracking-widest">Nilphamari Medical College</p>
         </div>
         
-        <button id="downloadCardBtn" class="mt-4 w-full bg-[#006a4e] hover:bg-[#005a42] text-white py-3 rounded-xl text-sm font-medium shadow-lg flex justify-center items-center gap-2">
+        <button id="downloadCardBtn" class="mt-4 w-full bg-[#0d4d8b] hover:bg-[#0a3d6e] text-white py-3 rounded-xl text-sm font-medium shadow-lg flex justify-center items-center gap-2 transition">
           ⬇️ Download Health Card
         </button>
       </div>
 
+      <!-- Admission Info -->
       <div id="admissionCard" class="hidden lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 p-5 border-l-4 border-l-blue-500">
         <h2 class="font-semibold text-gray-800 mb-2">🏥 Hospital Admission</h2>
         <div class="grid grid-cols-2 gap-4 text-sm">
