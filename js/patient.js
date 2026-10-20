@@ -1,3 +1,4 @@
+// js/patient.js
 import { auth, db } from "./firebase-config.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { doc, getDoc, updateDoc, arrayUnion, collection, query, where, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -36,9 +37,9 @@ onAuthStateChanged(auth, async (user) => {
 
 // ===== RENDER UI =====
 function renderUI(data) {
-  // 🌟 ১. QR কোড ইমেজ (Google Chart API - কোনো লাইব্রেরি লাগে না)
+  // 🌟 ১. QR কোড ইমেজ (QuickChart API - ১০০% কাজ করবে)
   if (data.healthId) {
-    const qrUrl = `https://chart.googleapis.com/chart?chs=150x150&cht=qr&chl=${encodeURIComponent(data.healthId)}&choe=UTF-8`;
+    const qrUrl = `https://quickchart.io/qr?text=${encodeURIComponent(data.healthId)}&size=150&margin=1&ecLevel=H`;
     const qrImg = document.getElementById("qrImage");
     if (qrImg) qrImg.src = qrUrl;
   }
