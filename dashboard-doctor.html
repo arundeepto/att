@@ -42,7 +42,7 @@
 
 <main class="max-w-7xl mx-auto p-3 md:p-6">
 
-  <!-- ========== TAB 1: SEARCH ========== -->
+  <!-- SEARCH TAB -->
   <section id="tab-search" class="tab-panel">
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
       <h2 class="text-lg md:text-xl font-bold text-gray-800 mb-4">🔍 Search Patient by Health ID</h2>
@@ -55,21 +55,17 @@
     </div>
   </section>
 
-  <!-- ========== TAB 2: CHAT ========== -->
+  <!-- CHAT TAB -->
   <section id="tab-chat" class="tab-panel hidden">
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 max-w-4xl mx-auto">
       <h2 class="text-lg font-bold text-gray-800 mb-4">💬 Messages</h2>
       <div class="grid md:grid-cols-3 gap-4 h-[500px]">
-        <!-- Chat List -->
         <div class="md:col-span-1 border-r border-gray-200 pr-2 overflow-y-auto" id="chatList">
           <p class="text-sm text-gray-400">Loading patients...</p>
         </div>
-        <!-- Chat Box -->
         <div class="md:col-span-2 flex flex-col h-full">
           <h3 id="chatHeader" class="font-semibold text-sm mb-2 text-gray-600">Select a patient to chat</h3>
-          <div id="chatMessages" class="flex-1 overflow-y-auto bg-slate-50 rounded-xl p-3 mb-3 space-y-2 text-sm border">
-            <!-- Messages will appear here -->
-          </div>
+          <div id="chatMessages" class="flex-1 overflow-y-auto bg-slate-50 rounded-xl p-3 mb-3 space-y-2 text-sm border"></div>
           <div class="flex gap-2">
             <input id="chatInput" type="text" class="flex-1 border rounded-xl p-3 text-sm focus:ring-2 focus:ring-[#006a4e] outline-none" placeholder="Type a message..." disabled>
             <button id="chatSendBtn" class="bg-[#006a4e] text-white px-5 rounded-xl font-medium disabled:opacity-50" disabled>Send</button>
@@ -79,7 +75,7 @@
     </div>
   </section>
 
-  <!-- ========== TAB 3: PRESCRIBE ========== -->
+  <!-- PRESCRIBE TAB -->
   <section id="tab-prescribe" class="tab-panel hidden">
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
       <h2 class="text-lg md:text-xl font-bold text-gray-800 mb-4">✍️ Create Prescription</h2>
@@ -94,7 +90,6 @@
           <div>
             <label class="text-xs text-gray-500 font-medium">Medications</label>
             <textarea id="rxMeds" rows="6" class="w-full border rounded-xl p-3 mt-1 font-mono text-xs" placeholder="Paracetamol | 500mg | 1-1-1 | 3 days&#10;Amoxicillin | 500mg | 1-0-1 | 5 days"></textarea>
-            <p class="text-[10px] text-gray-400 mt-1">Format: name | dosage | frequency | duration (one per line)</p>
           </div>
           <div><label class="text-xs text-gray-500 font-medium">Doctor's Notes</label><textarea id="rxNotes" rows="3" class="w-full border rounded-xl p-3 mt-1" placeholder="Rest, fluids, follow-up..."></textarea></div>
         </div>
@@ -113,8 +108,7 @@
         <div style="display: flex; justify-content: space-between; align-items: start;">
           <div>
             <h1 style="font-size: 24px; font-weight: bold; color: #006a4e; margin: 0;">IHMS Health Center</h1>
-            <p style="font-size: 11px; color: #666; margin: 4px 0 0 0;">Nilphamari Medical College · Integrated Health-care Management System</p>
-            <p style="font-size: 11px; color: #666; margin: 2px 0 0 0;">📍 Nilphamari, Bangladesh · ☎ +880-0000-000000</p>
+            <p style="font-size: 11px; color: #666; margin: 4px 0 0 0;">Nilphamari Medical College</p>
           </div>
           <div style="text-align: right;">
             <p style="font-size: 11px; color: #666; margin: 0;">Date:</p>
@@ -145,7 +139,7 @@
     </div>
   </section>
 
-  <!-- ========== TAB 4: EMERGENCY ========== -->
+  <!-- EMERGENCY TAB -->
   <section id="tab-emergency" class="tab-panel hidden">
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
       <div class="flex justify-between items-center mb-4">
@@ -156,7 +150,7 @@
     </div>
   </section>
 
-  <!-- ========== TAB 5: REFERRALS ========== -->
+  <!-- REFERRALS TAB -->
   <section id="tab-referrals" class="tab-panel hidden">
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
       <h2 class="text-lg md:text-xl font-bold text-gray-800 mb-4">🔀 Refer Patient</h2>
@@ -174,7 +168,7 @@
     </div>
   </section>
 
-  <!-- ========== TAB 6: SCHEDULE ========== -->
+  <!-- SCHEDULE TAB -->
   <section id="tab-schedule" class="tab-panel hidden">
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
       <h2 class="text-lg md:text-xl font-bold text-gray-800 mb-4">📅 My Appointments Today</h2>
