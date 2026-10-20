@@ -11,7 +11,6 @@ document.querySelectorAll(".tab-btn").forEach(btn => {
     document.querySelectorAll(".tab-panel").forEach(p => p.classList.add("hidden"));
     document.getElementById("tab-" + btn.dataset.tab).classList.remove("hidden");
     
-    // ট্যাব ক্লিক করলে রোগীর লিস্ট লোড হবে
     if (btn.dataset.tab === "patients") loadPatients();
   });
 });
@@ -19,33 +18,59 @@ document.querySelectorAll(".tab-btn").forEach(btn => {
 let currentUser = null;
 let nurseData = null;
 
+// ===== AUTH & LOAD NURSE DATA (UID অথবা Email দিয়ে) =====
 onAuthStateChanged(auth, async (user) => {
   if (!user) { window.location.href = "login.html?role=nurse"; return; }
   currentUser = user;
-  const snap = await getDoc(doc(db, "users", user.uid));
-  if (snap.exists()) {
-    nurseData = snap.data();
-    document.getElementById("nurseName").innerText = nurseData.name + " (" + (nurseData.department || "General") + ")";
+
+  try {
+    // ১. প্রথমে UID দিয়ে খুঁজবে
+    let snap = await getDoc(doc(db, "users", user.uid));
+    
+    // ২. যদি UID দিয়ে না পায়, তবে ইমেইল দিয়ে খুঁজবে
+    if (!snap.exists()) {
+      const q = query(collection(db, "users"), where("email", "==", user.email));
+      const emailSnap = await getDocs(q);
+      if (!emailSnap.empty) {
+        snap = emailSnap.docs[0];
+      }
+    }
+
+    if (snap.exists()) {
+      nurseData = snap.data();
+      const nameEl = document.getElementById("nurseName");
+      if (nameEl) {
+        nameEl.innerText = (nurseData.name || "Nurse") + " (" + (nurseData.department || "General") + ")";
+      }
+    } else {
+      alert("❌ ডেটাবেসে আপনার প্রোফাইল পাওয়া যায়নি! ফায়ারবেসে 'email' ফিল্ড ঠিক আছে কিনা দেখুন।");
+    }
+  } catch (err) {
+    console.error("Auth Error:", err);
   }
+  
   loadCalls();
 });
 
-// ===== 1. LOAD CALLS (শুধু নিজের ডিপার্টমেন্ট) =====
+// ===== 1. LOAD CALLS =====
 async function loadCalls() {
   const list = document.getElementById("callsList");
+  if (!list) return;
   list.innerHTML = '<p class="text-sm text-gray-400">Loading...</p>';
+
+  if (!nurseData) return;
 
   try {
     const q = query(collection(db, "users"), where("role", "==", "patient"));
     const snap = await getDocs(q);
     const calls = [];
+    
     const nurseDept = (nurseData.department || "").toLowerCase().trim();
     
     snap.forEach(d => {
       const p = d.data();
       const patientDept = (p.admittedDepartment || "").toLowerCase().trim();
       
-      // 🌟 ডিপার্টমেন্ট ম্যাচিং (ছোট-বড় হাতের অক্ষর মিলিয়ে)
       if (p.isAdmitted && patientDept === nurseDept) {
         (p.nurseCalls || []).forEach(c => {
           if (c.status === "pending" || c.status === "critical") {
@@ -56,7 +81,7 @@ async function loadCalls() {
     });
 
     if (calls.length === 0) {
-      list.innerHTML = `<div class="text-center py-8"><div class="text-4xl mb-2">✅</div><p class="text-sm text-gray-500">No pending calls in ${nurseData.department}</p></div>`;
+      list.innerHTML = `<div class="text-center py-8"><div class="text-4xl mb-2">✅</div><p class="text-sm text-gray-500">No pending calls in ${nurseData.department || 'your department'}</p></div>`;
       return;
     }
 
@@ -86,7 +111,7 @@ async function loadCalls() {
   } catch (e) { list.innerHTML = `<p class="text-sm text-red-500">Error: ${e.message}</p>`; }
 }
 
-document.getElementById("refreshBtn").addEventListener("click", loadCalls);
+document.getElementById("refreshBtn")?.addEventListener("click", loadCalls);
 
 // ===== 2. LOG VITALS =====
 document.getElementById("vitalSaveBtn")?.addEventListener("click", async () => {
@@ -109,7 +134,9 @@ document.getElementById("vitalSaveBtn")?.addEventListener("click", async () => {
     await updateDoc(doc(db, "users", snap.docs[0].id), {
       vitals: arrayUnion({ 
         bp, pulse: Number(pulse), temp: temp ? Number(temp) : null, spo2: Number(spo2), notes, 
-        loggedBy: nurseData.name || "Nurse", timestamp: new Date().toISOString() 
+        loggedBy: nurseData.name || "Nurse", 
+        department: nurseData.department || "General", 
+        timestamp: new Date().toISOString() 
       })
     });
 
@@ -119,21 +146,20 @@ document.getElementById("vitalSaveBtn")?.addEventListener("click", async () => {
   } catch (e) { status.innerText = "❌ " + e.message; }
 });
 
-// ===== 3. ADD TREATMENT (ফিক্স করা) =====
+// ===== 3. ADD TREATMENT =====
 document.getElementById("addTreatBtn")?.addEventListener("click", async () => {
   const pid = document.getElementById("tPatientId").value.trim();
   const tname = document.getElementById("tName").value.trim();
   const status = document.getElementById("tStatusMsg");
   
   if (!pid || !tname) { status.innerText = "❌ Fill both fields"; return; }
+  if (!nurseData) { status.innerText = "❌ Nurse data not loaded"; return; }
+  
   status.innerText = "Saving...";
 
   try {
-    // 🌟 প্রথমে Health ID দিয়ে খুঁজবে
-    let q = query(collection(db, "users"), where("healthId", "==", pid));
-    let snap = await getDocs(q);
+    let snap = await getDocs(query(collection(db, "users"), where("healthId", "==", pid)));
     
-    // যদি Health ID দিয়ে না পায়, তবে নাম দিয়েও খুঁজবে (Case-insensitive)
     if (snap.empty) {
       const allPatients = await getDocs(query(collection(db, "users"), where("role", "==", "patient")));
       let found = false;
@@ -142,8 +168,10 @@ document.getElementById("addTreatBtn")?.addEventListener("click", async () => {
         if (p.name.toLowerCase().includes(pid.toLowerCase())) {
            await updateDoc(doc(db, "users", docSnap.id), {
              treatments: arrayUnion({
-               name: tname, date: new Date().toISOString().split("T")[0],
-               department: nurseData.department, by: nurseData.name
+               name: tname, 
+               date: new Date().toISOString().split("T")[0],
+               department: nurseData.department || "General", 
+               by: nurseData.name || "Nurse" 
              })
            });
            found = true;
@@ -161,13 +189,15 @@ document.getElementById("addTreatBtn")?.addEventListener("click", async () => {
       return;
     }
 
-    // যদি Health ID দিয়ে পায়
     await updateDoc(doc(db, "users", snap.docs[0].id), {
       treatments: arrayUnion({ 
-        name: tname, date: new Date().toISOString().split("T")[0], 
-        department: nurseData.department, by: nurseData.name 
+        name: tname, 
+        date: new Date().toISOString().split("T")[0], 
+        department: nurseData.department || "General", 
+        by: nurseData.name || "Nurse" 
       })
     });
+    
     status.innerText = "✅ Treatment added!";
     document.getElementById("tPatientId").value = "";
     document.getElementById("tName").value = "";
@@ -175,10 +205,13 @@ document.getElementById("addTreatBtn")?.addEventListener("click", async () => {
   } catch (e) { status.innerText = "❌ " + e.message; }
 });
 
-// ===== 4. MY PATIENTS (ফিক্স করা) =====
+// ===== 4. MY PATIENTS =====
 async function loadPatients() {
   const list = document.getElementById("patientsList");
+  if (!list) return;
   list.innerHTML = '<p class="text-sm text-gray-400">Loading...</p>';
+
+  if (!nurseData) return;
 
   try {
     const q = query(collection(db, "users"), where("role", "==", "patient"));
@@ -190,14 +223,13 @@ async function loadPatients() {
       const p = d.data();
       const patientDept = (p.admittedDepartment || "").toLowerCase().trim();
       
-      // 🌟 ডিপার্টমেন্ট ম্যাচিং
       if (p.isAdmitted === true && patientDept === nurseDept) {
         patients.push(p);
       }
     });
 
     if (patients.length === 0) {
-      list.innerHTML = `<p class="text-sm text-gray-400">No admitted patients in ${nurseData.department} department.</p>`;
+      list.innerHTML = `<p class="text-sm text-gray-400">No admitted patients in ${nurseData.department || 'your department'}.</p>`;
       return;
     }
 
