@@ -1,12 +1,8 @@
-// js/patient.js
 import { auth, db } from "./firebase-config.js";
-import {
-  onAuthStateChanged, signOut
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import {
-  doc, getDoc, updateDoc, arrayUnion
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { doc, getDoc, updateDoc, arrayUnion, collection, query, where, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
+// ===== TABS =====
 document.querySelectorAll(".tab-btn").forEach(btn => {
   btn.addEventListener("click", () => {
     document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
@@ -18,227 +14,165 @@ document.querySelectorAll(".tab-btn").forEach(btn => {
 
 let currentUser = null;
 let userData = null;
+let activeChatDoctorId = null;
+let unsubscribeChat = null;
 
+// ===== LOAD USER =====
 onAuthStateChanged(auth, async (user) => {
   if (!user) { window.location.href = "login.html?role=patient"; return; }
   currentUser = user;
   const snap = await getDoc(doc(db, "users", user.uid));
-  if (!snap.exists()) {
-    alert("Profile not found. Please register again.");
-    window.location.href = "register.html";
-    return;
-  }
+  if (!snap.exists()) { window.location.href = "register.html"; return; }
   userData = snap.data();
-  renderAll(userData);
+  
+  renderUI(userData);
+  loadDoctors();
 });
 
-function renderAll(data) {
+function renderUI(data) {
   document.getElementById("healthIdText").innerText = data.healthId || "—";
   document.getElementById("bloodText").innerText = data.bloodGroup || "—";
-  document.getElementById("ageText").innerText = data.age || "—";
-  document.getElementById("genderText").innerText = data.gender || "—";
 
   try {
-    QRCode.toCanvas(document.getElementById("qrCanvas"),
-      JSON.stringify({ id: data.healthId, name: data.name, blood: data.bloodGroup, phone: data.phone || "" }),
-      { width: 130, margin: 1, color: { dark: "#006a4e", light: "#ffffff" } }
-    );
-  } catch (e) { console.error("QR error:", e); }
+    QRCode.toCanvas(document.getElementById("qrCanvas"), JSON.stringify({ id: data.healthId, name: data.name }), { width: 110, margin: 1, color: { dark: "#006a4e" } });
+  } catch (e) {}
 
-  document.getElementById("statPrescriptions").innerText = (data.medicalHistory || []).length;
-  document.getElementById("statMeds").innerText = (data.medications || []).length;
-  document.getElementById("statPast").innerText = (data.pastHistory || []).length;
-  document.getElementById("statDrug").innerText = (data.drugHistory || []).length;
+  // SOS & Admission Logic
+  const sosBtn = document.getElementById("emergencyBtn");
+  const admCard = document.getElementById("admissionCard");
 
-  const recent = (data.medicalHistory || []).slice().reverse().slice(0, 3);
-  const recentList = document.getElementById("recentHistoryList");
-  if (recent.length === 0) {
-    recentList.innerHTML = '<p class="text-sm text-gray-400">No records yet. Scan a prescription with AI ✨</p>';
-  } else {
-    recentList.innerHTML = recent.map(renderHistoryItem).join("");
-  }
-
-  const full = (data.medicalHistory || []).slice().reverse();
-  const fullList = document.getElementById("fullHistoryList");
-  if (full.length === 0) {
-    fullList.innerHTML = '<p class="text-sm text-gray-400">No records yet</p>';
-  } else {
-    fullList.innerHTML = full.map(renderHistoryItem).join("");
-  }
-
-  // PAST HISTORY
-  const pastView = document.getElementById("pastHistoryView");
-  if (pastView) {
-    const past = data.pastHistory || [];
-    pastView.innerHTML = past.length === 0
-      ? '<p class="text-gray-400">No records</p>'
-      : past.slice().reverse().map(p => `
-          <div class="border-b border-orange-200 pb-1">
-            <p class="font-medium">${p.condition} ${p.year ? "(" + p.year + ")" : ""}</p>
-            ${p.notes ? `<p class="text-orange-700 text-[11px]">${p.notes}</p>` : ""}
-          </div>
-        `).join("");
-  }
-
-  // DRUG HISTORY
-  const drugView = document.getElementById("drugHistoryView");
-  if (drugView) {
-    const drugs = data.drugHistory || [];
-    drugView.innerHTML = drugs.length === 0
-      ? '<p class="text-gray-400">No records</p>'
-      : drugs.slice().reverse().map(d => `
-          <div class="border-b border-red-200 pb-1">
-            <p class="font-medium">${d.drug}</p>
-            <p class="text-red-700 text-[11px]">${d.reaction} ${d.severity ? "· " + d.severity : ""}</p>
-          </div>
-        `).join("");
-  }
-
-  renderMedications(data.medications || []);
-  renderVaccines(data.vaccinations || []);
-}
-
-function renderHistoryItem(r) {
-  return `
-    <div class="bg-blue-50 p-4 rounded-xl border border-blue-100">
-      <div class="flex justify-between items-start">
-        <p class="font-semibold text-sm text-gray-800">${r.date || "—"}</p>
-        ${r.doctor ? `<span class="text-[10px] bg-white text-[#006a4e] px-2 py-0.5 rounded-full font-medium">${r.doctor}</span>` : ""}
-      </div>
-      <p class="text-xs text-gray-600 mt-1"><b>Diagnosis:</b> ${r.diagnosis || "—"}</p>
-      <p class="text-xs text-[#006a4e] mt-1 whitespace-pre-line"><b>Meds:</b> ${r.medications || "—"}</p>
-      ${r.doctorNotes ? `<p class="text-xs text-gray-500 mt-1 italic">"${r.doctorNotes}"</p>` : ""}
-    </div>
-  `;
-}
-
-function renderMedications(meds) {
-  const list = document.getElementById("medsList");
-  if (meds.length === 0) {
-    list.innerHTML = `<div class="text-center py-8">
-      <div class="text-4xl mb-2">💊</div>
-      <p class="text-sm text-gray-400">No active medications</p>
-      <p class="text-xs text-gray-400 mt-1">Scan a prescription to add medications</p>
-    </div>`;
-    return;
-  }
-  list.innerHTML = meds.map((m, i) => {
-    const taken = m.taken || false;
-    return `
-      <div class="flex items-center justify-between p-4 rounded-xl border ${taken ? 'bg-green-50 border-green-100' : 'bg-white border-gray-100'}">
-        <div class="flex-1">
-          <p class="font-semibold text-sm text-gray-800">${m.name || "—"}</p>
-          <p class="text-xs text-gray-500 mt-0.5">${m.dosage || ""} · ${m.frequency || ""} · ${m.duration || ""}</p>
-          <p class="text-[10px] text-gray-400 mt-1">🔔 Reminder: Daily at 8:00 AM & 8:00 PM</p>
+  if (data.isAdmitted) {
+    sosBtn.classList.remove("hidden");
+    admCard.classList.remove("hidden");
+    document.getElementById("admDept").innerText = data.admittedDepartment || "General";
+    document.getElementById("admRoom").innerText = data.room || "—";
+    
+    // Render Treatments
+    const tList = document.getElementById("treatmentList");
+    if (data.treatments && data.treatments.length > 0) {
+      tList.innerHTML = data.treatments.map(t => `
+        <div class="bg-blue-50 p-2 rounded border border-blue-100">
+          <p class="font-semibold text-blue-900">${t.name}</p>
+          <p class="text-[10px] text-gray-500">${t.date} · By ${t.doctor || "Doctor"}</p>
         </div>
-        <button data-med-index="${i}" class="med-toggle text-xs px-3 py-1.5 rounded-lg font-medium ${taken ? 'bg-green-500 text-white' : 'bg-[#006a4e] text-white'}">
-          ${taken ? "✓ Taken" : "Mark Taken"}
-        </button>
-      </div>
-    `;
-  }).join("");
-
-  list.querySelectorAll(".med-toggle").forEach(btn => {
-    btn.addEventListener("click", async () => {
-      const idx = Number(btn.dataset.medIndex);
-      const updatedMeds = [...userData.medications];
-      updatedMeds[idx].taken = !updatedMeds[idx].taken;
-      await updateDoc(doc(db, "users", currentUser.uid), { medications: updatedMeds });
-      userData.medications = updatedMeds;
-      renderMedications(updatedMeds);
-    });
-  });
+      `).join("");
+    }
+  } else {
+    sosBtn.classList.add("hidden");
+    admCard.classList.add("hidden");
+  }
 }
 
-function renderVaccines(vaccines) {
-  const list = document.getElementById("vaccineList");
-  if (vaccines.length === 0) {
-    list.innerHTML = `
-      <div class="text-center py-8">
-        <div class="text-4xl mb-2">💉</div>
-        <p class="text-sm text-gray-400">No vaccination records yet</p>
-      </div>
-      <div class="mt-6 bg-yellow-50 border border-yellow-100 rounded-2xl p-4">
-        <h3 class="font-semibold text-yellow-900 text-sm mb-2">📅 Common Vaccine Schedule (Bangladesh EPI)</h3>
-        <ul class="text-xs text-yellow-800 space-y-1">
-          <li>• Birth: BCG, OPV-0, Hep-B</li>
-          <li>• 6 weeks: Penta-1, OPV-1, PCV-1, Rota-1</li>
-          <li>• 10 weeks: Penta-2, OPV-2, PCV-2, Rota-2</li>
-          <li>• 14 weeks: Penta-3, OPV-3, PCV-3, IPV, Rota-3</li>
-          <li>• 9 months: MR-1, PCV Booster</li>
-          <li>• 15 months: MR-2, DPT Booster</li>
-        </ul>
-      </div>`;
-    return;
-  }
-  list.innerHTML = vaccines.map(v => `
-    <div class="flex items-center justify-between p-4 rounded-xl bg-green-50 border border-green-100">
-      <div>
-        <p class="font-semibold text-sm text-gray-800">${v.name}</p>
-        <p class="text-xs text-gray-500">Given: ${v.date || "—"}</p>
-      </div>
-      <span class="text-xs bg-green-500 text-white px-3 py-1 rounded-full">✓ Done</span>
-    </div>
-  `).join("");
-}
-
-document.getElementById("nurseCallBtn").addEventListener("click", async () => {
-  const status = document.getElementById("nurseCallStatus");
-  const call = {
-    type: "nurse",
-    patientId: userData.healthId,
-    patientName: userData.name,
-    room: userData.room || "Not assigned",
-    timestamp: new Date().toISOString(),
-    status: "pending"
-  };
-  try {
-    await updateDoc(doc(db, "users", currentUser.uid), {
-      nurseCalls: arrayUnion(call)
-    });
-    status.innerHTML = `<div class="bg-red-50 border border-red-200 rounded-xl p-3 text-red-700">
-      <p class="font-semibold text-sm">🚨 Nurse Called!</p>
-      <p class="text-xs mt-1">Wait for assistance. Called at ${new Date().toLocaleTimeString()}</p>
-    </div>`;
-    setTimeout(() => {
-      status.innerHTML = `<div class="bg-green-50 border border-green-200 rounded-xl p-3 text-green-700">
-        <p class="font-semibold text-sm">✅ Nurse Responding</p>
-        <p class="text-xs mt-1">Nurse is on the way to your room</p>
-      </div>`;
-    }, 4000);
-  } catch (e) {
-    status.innerHTML = `<p class="text-red-500">Error: ${e.message}</p>`;
-  }
-});
-
+// ===== SOS BUTTON (Only for Admitted) =====
 document.getElementById("emergencyBtn").addEventListener("click", async () => {
-  if (!confirm("🚨 Send EMERGENCY alert to doctor on duty?")) return;
+  if (!confirm("🚨 Send EMERGENCY alert to your department's nurse?")) return;
+  
   const call = {
     type: "emergency",
     patientId: userData.healthId,
     patientName: userData.name,
-    bloodGroup: userData.bloodGroup,
+    department: userData.admittedDepartment || "General",
+    room: userData.room || "—",
     timestamp: new Date().toISOString(),
     status: "critical"
   };
+
   try {
-    await updateDoc(doc(db, "users", currentUser.uid), {
-      nurseCalls: arrayUnion(call)
-    });
-    alert("🚨 EMERGENCY alert sent!\nDoctor on duty has been notified.");
-  } catch (e) {
-    alert("Error: " + e.message);
+    await updateDoc(doc(db, "users", currentUser.uid), { nurseCalls: arrayUnion(call) });
+    alert("🚨 Alert sent to the nurse on duty in " + call.department);
+  } catch (e) { alert("Error: " + e.message); }
+});
+
+// ===== FIND DOCTORS =====
+async function loadDoctors() {
+  const list = document.getElementById("doctorList");
+  const snap = await getDocs(query(collection(db, "users"), where("role", "==", "doctor")));
+  
+  if (snap.empty) {
+    list.innerHTML = '<p class="text-sm text-gray-400">No doctors found.</p>';
+    return;
   }
+
+  list.innerHTML = snap.docs.map(docSnap => {
+    const d = docSnap.data();
+    return `
+      <div class="border border-gray-200 rounded-xl p-4 flex justify-between items-center">
+        <div>
+          <p class="font-bold text-gray-800">${d.name}</p>
+          <p class="text-xs text-[#006a4e] font-medium">${d.department}</p>
+          <p class="text-[10px] text-gray-500">${d.bmdcId || "BMDC Verified"}</p>
+        </div>
+        <button class="chatBtn bg-blue-50 text-blue-600 px-3 py-2 rounded-lg text-xs font-medium" data-id="${docSnap.id}" data-name="${d.name}">💬 Chat</button>
+      </div>
+    `;
+  }).join("");
+
+  document.querySelectorAll(".chatBtn").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      const b = e.currentTarget;
+      startChat(b.dataset.id, b.dataset.name);
+      document.querySelector('[data-tab="chat"]').click();
+    });
+  });
+}
+
+// ===== CHAT SYSTEM =====
+function startChat(doctorId, doctorName) {
+  activeChatDoctorId = doctorId;
+  document.getElementById("chatInput").disabled = false;
+  document.getElementById("chatSendBtn").disabled = false;
+  document.getElementById("chatMessages").innerHTML = `<p class="text-center text-xs text-gray-400 mb-2">Chat started with ${doctorName}</p>`;
+  
+  if (unsubscribeChat) unsubscribeChat();
+
+  // Format: chat_{patientId}_{doctorId}
+  const chatRoomId = [currentUser.uid, doctorId].sort().join("_");
+  
+  // Real-time listener
+  unsubscribeChat = onSnapshot(doc(db, "chats", chatRoomId), (docSnap) => {
+    const box = document.getElementById("chatMessages");
+    if (docSnap.exists()) {
+      const msgs = docSnap.data().messages || [];
+      box.innerHTML = `<p class="text-center text-xs text-gray-400 mb-2">Chat with ${doctorName}</p>` + msgs.map(m => `
+        <div class="flex ${m.senderId === currentUser.uid ? 'justify-end' : 'justify-start'}">
+          <div class="max-w-[75%] px-3 py-2 rounded-xl text-sm ${m.senderId === currentUser.uid ? 'bg-[#006a4e] text-white' : 'bg-white border text-gray-800'}">
+            ${m.text}
+          </div>
+        </div>
+      `).join("");
+      box.scrollTop = box.scrollHeight;
+    }
+  });
+}
+
+document.getElementById("chatSendBtn").addEventListener("click", async () => {
+  const input = document.getElementById("chatInput");
+  const text = input.value.trim();
+  if (!text || !activeChatDoctorId) return;
+
+  input.value = "";
+  const chatRoomId = [currentUser.uid, activeChatDoctorId].sort().join("_");
+  
+  try {
+    await updateDoc(doc(db, "chats", chatRoomId), {
+      messages: arrayUnion({
+        senderId: currentUser.uid,
+        text: text,
+        timestamp: new Date().toISOString()
+      })
+    }).catch(async (e) => {
+      // If doc doesn't exist, create it
+      if (e.code === 'not-found') {
+        const { setDoc } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+        await setDoc(doc(db, "chats", chatRoomId), {
+          messages: [{ senderId: currentUser.uid, text: text, timestamp: new Date().toISOString() }]
+        });
+      }
+    });
+  } catch (e) { console.error(e); }
 });
 
-document.getElementById("downloadQRBtn").addEventListener("click", () => {
-  const canvas = document.getElementById("qrCanvas");
-  const link = document.createElement("a");
-  link.download = `${userData.healthId}-QR.png`;
-  link.href = canvas.toDataURL("image/png");
-  link.click();
-});
-
+// ===== LOGOUT =====
 document.getElementById("logoutBtn").addEventListener("click", async () => {
   await signOut(auth);
   window.location.href = "index.html";
