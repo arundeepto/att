@@ -6,7 +6,6 @@
 <meta name="theme-color" content="#006a4e" />
 <title>Health Portal · IHMS</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <link rel="stylesheet" href="css/style.css" />
 </head>
@@ -77,8 +76,9 @@
               </div>
             </div>
             
+            <!-- 🌟 Google Chart API দিয়ে QR ইমেজ -->
             <div class="bg-white p-2 rounded-xl shadow-inner">
-              <canvas id="qrCanvas" class="rounded-lg w-24 h-24"></canvas>
+              <img id="qrImage" src="" alt="QR" class="rounded-lg w-24 h-24 object-contain" />
             </div>
           </div>
         </div>
