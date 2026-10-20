@@ -10,23 +10,29 @@
 </head>
 <body class="min-h-screen bg-slate-50 pb-20">
 
+<!-- NAVBAR -->
 <nav class="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm">
   <div class="max-w-7xl mx-auto px-4 flex items-center justify-between h-16">
     <div class="flex items-center gap-2">
       <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-[#006a4e] to-[#00875a] flex items-center justify-center text-white text-lg font-bold shadow">🩺</div>
-      <div><h1 class="font-bold text-gray-800 text-sm leading-tight">IHMS</h1><p class="text-[9px] text-gray-400 tracking-widest">DOCTOR PORTAL</p></div>
+      <div>
+        <h1 class="font-bold text-gray-800 text-sm leading-tight">IHMS</h1>
+        <p class="text-[9px] text-gray-400 tracking-widest">DOCTOR PORTAL</p>
+      </div>
     </div>
     <div class="flex items-center gap-2">
-      <span id="bmdcBadge" class="hidden sm:flex text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full items-center gap-1">✅ BMDC Verified</span>
+      <span id="doctorDept" class="hidden sm:flex text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">General</span>
       <span id="doctorName" class="hidden md:block text-sm text-gray-600"></span>
       <button id="logoutBtn" class="text-xs md:text-sm px-3 md:px-4 py-2 rounded-lg border border-gray-200 hover:bg-gray-50">Logout</button>
     </div>
   </div>
 </nav>
 
+<!-- TABS -->
 <div class="bg-white border-b border-gray-200 sticky top-16 z-30">
   <div class="max-w-7xl mx-auto px-2 md:px-4 flex gap-1 overflow-x-auto no-scrollbar">
     <button data-tab="search" class="tab-btn active">🔍 Patient Search</button>
+    <button data-tab="chat" class="tab-btn">💬 Chat</button>
     <button data-tab="prescribe" class="tab-btn">✍️ Create Rx</button>
     <button data-tab="emergency" class="tab-btn">🚨 Emergency</button>
     <button data-tab="referrals" class="tab-btn">🔀 Referrals</button>
@@ -36,146 +42,145 @@
 
 <main class="max-w-7xl mx-auto p-3 md:p-6">
 
-<!-- SEARCH TAB -->
-<section id="tab-search" class="tab-panel">
-  <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-    <h2 class="text-lg md:text-xl font-bold text-gray-800 mb-4">🔍 Search Patient by Health ID</h2>
-    <div class="flex flex-col sm:flex-row gap-3">
-      <input id="searchId" placeholder="Enter Health ID (e.g. IHMS-A3F9K2)" class="flex-1 border rounded-xl p-3 text-sm focus:ring-2 focus:ring-[#006a4e] outline-none" />
-      <button id="searchBtn" class="bg-[#006a4e] hover:bg-[#005a42] text-white px-6 py-3 rounded-xl text-sm font-medium">Search</button>
-    </div>
-    <p id="searchStatus" class="text-xs text-gray-500 mt-2"></p>
-    <div id="patientResult" class="mt-6 hidden"></div>
-  </div>
-</section>
-
-<!-- PRESCRIBE TAB -->
-<section id="tab-prescribe" class="tab-panel hidden">
-  <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-    <h2 class="text-lg md:text-xl font-bold text-gray-800 mb-4">✍️ Create Prescription</h2>
-    <div class="grid md:grid-cols-2 gap-5">
-      <div class="space-y-3 text-sm">
-        <div><label class="text-xs text-gray-500 font-medium">Patient Health ID</label><input id="rxPatientId" class="w-full border rounded-xl p-3 mt-1" placeholder="IHMS-XXXXXX" /></div>
-        <div><label class="text-xs text-gray-500 font-medium">Patient Name</label><input id="rxPatientName" class="w-full border rounded-xl p-3 mt-1" placeholder="Auto-filled on search" /></div>
-        <div><label class="text-xs text-gray-500 font-medium">Date</label><input id="rxDate" type="date" class="w-full border rounded-xl p-3 mt-1" /></div>
-        <div><label class="text-xs text-gray-500 font-medium">Diagnosis</label><input id="rxDiagnosis" class="w-full border rounded-xl p-3 mt-1" placeholder="e.g. Acute bronchitis" /></div>
+  <!-- ========== TAB 1: SEARCH ========== -->
+  <section id="tab-search" class="tab-panel">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+      <h2 class="text-lg md:text-xl font-bold text-gray-800 mb-4">🔍 Search Patient by Health ID</h2>
+      <div class="flex flex-col sm:flex-row gap-3">
+        <input id="searchId" placeholder="Enter Health ID (e.g. IHMS-1234)" class="flex-1 border rounded-xl p-3 text-sm focus:ring-2 focus:ring-[#006a4e] outline-none" />
+        <button id="searchBtn" class="bg-[#006a4e] hover:bg-[#005a42] text-white px-6 py-3 rounded-xl text-sm font-medium">Search</button>
       </div>
-      <div class="space-y-3 text-sm">
-        <div>
-          <label class="text-xs text-gray-500 font-medium">Medications</label>
-          <textarea id="rxMeds" rows="6" class="w-full border rounded-xl p-3 mt-1 font-mono text-xs" placeholder="Paracetamol | 500mg | 1-1-1 | 3 days&#10;Amoxicillin | 500mg | 1-0-1 | 5 days"></textarea>
-          <p class="text-[10px] text-gray-400 mt-1">Format: name | dosage | frequency | duration (one per line)</p>
-        </div>
-        <div><label class="text-xs text-gray-500 font-medium">Doctor's Notes</label><textarea id="rxNotes" rows="3" class="w-full border rounded-xl p-3 mt-1" placeholder="Rest, fluids, follow-up..."></textarea></div>
-      </div>
+      <p id="searchStatus" class="text-xs text-gray-500 mt-2"></p>
+      <div id="patientResult" class="mt-6 hidden"></div>
     </div>
-    <div class="flex flex-col sm:flex-row gap-3 mt-5">
-      <button id="rxSaveBtn" class="flex-1 bg-[#006a4e] hover:bg-[#005a42] text-white py-3 rounded-xl font-medium">💾 Save Prescription</button>
-      <button id="rxPrintBtn" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-medium">🖨️ Print / Preview</button>
-      <button id="rxClearBtn" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 rounded-xl font-medium">🔄 Clear Form</button>
-    </div>
-    <p id="rxStatus" class="text-xs text-green-700 mt-2 text-center"></p>
-  </div>
+  </section>
 
-  <!-- PRINT AREA -->
-  <div id="printArea" class="hidden mt-6 bg-white rounded-2xl shadow-sm border border-gray-100 p-6" style="font-family: 'Times New Roman', serif;">
-    <div style="border-bottom: 3px double #006a4e; padding-bottom: 12px; margin-bottom: 16px;">
-      <div style="display: flex; justify-content: space-between; align-items: start;">
-        <div>
-          <h1 style="font-size: 24px; font-weight: bold; color: #006a4e; margin: 0;">IHMS Health Center</h1>
-          <p style="font-size: 11px; color: #666; margin: 4px 0 0 0;">Nilphamari Medical College · Integrated Health-care Management System</p>
-          <p style="font-size: 11px; color: #666; margin: 2px 0 0 0;">📍 Nilphamari, Bangladesh · ☎ +880-0000-000000</p>
+  <!-- ========== TAB 2: CHAT ========== -->
+  <section id="tab-chat" class="tab-panel hidden">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 max-w-4xl mx-auto">
+      <h2 class="text-lg font-bold text-gray-800 mb-4">💬 Messages</h2>
+      <div class="grid md:grid-cols-3 gap-4 h-[500px]">
+        <!-- Chat List -->
+        <div class="md:col-span-1 border-r border-gray-200 pr-2 overflow-y-auto" id="chatList">
+          <p class="text-sm text-gray-400">Loading patients...</p>
         </div>
-        <div style="text-align: right;">
-          <p style="font-size: 11px; color: #666; margin: 0;">Date:</p>
-          <p id="printDate" style="font-size: 13px; font-weight: bold; margin: 2px 0 0 0;">—</p>
+        <!-- Chat Box -->
+        <div class="md:col-span-2 flex flex-col h-full">
+          <h3 id="chatHeader" class="font-semibold text-sm mb-2 text-gray-600">Select a patient to chat</h3>
+          <div id="chatMessages" class="flex-1 overflow-y-auto bg-slate-50 rounded-xl p-3 mb-3 space-y-2 text-sm border">
+            <!-- Messages will appear here -->
+          </div>
+          <div class="flex gap-2">
+            <input id="chatInput" type="text" class="flex-1 border rounded-xl p-3 text-sm focus:ring-2 focus:ring-[#006a4e] outline-none" placeholder="Type a message..." disabled>
+            <button id="chatSendBtn" class="bg-[#006a4e] text-white px-5 rounded-xl font-medium disabled:opacity-50" disabled>Send</button>
+          </div>
         </div>
       </div>
     </div>
+  </section>
 
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
-      <div><p style="font-size: 10px; color: #888; margin: 0;">PATIENT NAME</p><p id="printPatientName" style="font-size: 14px; font-weight: bold; margin: 2px 0;">—</p></div>
-      <div><p style="font-size: 10px; color: #888; margin: 0;">HEALTH ID</p><p id="printPatientId" style="font-size: 14px; font-weight: bold; margin: 2px 0; font-family: monospace;">—</p></div>
-    </div>
-
-    <div style="margin-bottom: 16px;">
-      <p style="font-size: 10px; color: #888; margin: 0;">DIAGNOSIS</p>
-      <p id="printDiagnosis" style="font-size: 13px; margin: 4px 0; padding: 8px; background: #f0fdf4; border-left: 3px solid #006a4e;">—</p>
-    </div>
-
-    <div style="margin-bottom: 16px;">
-      <p style="font-size: 11px; font-weight: bold; color: #006a4e; border-bottom: 1px solid #ccc; padding-bottom: 4px; margin-bottom: 8px;">℞ PRESCRIPTION</p>
-      <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
-        <thead>
-          <tr style="background: #f0fdf4;">
-            <th style="text-align: left; padding: 6px; border: 1px solid #ddd;">#</th>
-            <th style="text-align: left; padding: 6px; border: 1px solid #ddd;">Medicine</th>
-            <th style="text-align: left; padding: 6px; border: 1px solid #ddd;">Dosage</th>
-            <th style="text-align: left; padding: 6px; border: 1px solid #ddd;">Frequency</th>
-            <th style="text-align: left; padding: 6px; border: 1px solid #ddd;">Duration</th>
-          </tr>
-        </thead>
-        <tbody id="printMedTable"></tbody>
-      </table>
-    </div>
-
-    <div style="margin-bottom: 16px;">
-      <p style="font-size: 10px; color: #888; margin: 0;">DOCTOR'S NOTES</p>
-      <p id="printNotes" style="font-size: 12px; margin: 4px 0; font-style: italic;">—</p>
-    </div>
-
-    <div style="display: flex; justify-content: space-between; align-items: end; margin-top: 40px; padding-top: 12px; border-top: 1px solid #ccc;">
-      <div>
-        <p style="font-size: 10px; color: #888; margin: 0;">Prescribed by</p>
-        <p id="printDoctorName" style="font-size: 14px; font-weight: bold; margin: 4px 0 0 0; color: #006a4e;">—</p>
-        <p id="printDoctorBmdc" style="font-size: 10px; color: #666; margin: 2px 0 0 0;">—</p>
+  <!-- ========== TAB 3: PRESCRIBE ========== -->
+  <section id="tab-prescribe" class="tab-panel hidden">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+      <h2 class="text-lg md:text-xl font-bold text-gray-800 mb-4">✍️ Create Prescription</h2>
+      <div class="grid md:grid-cols-2 gap-5">
+        <div class="space-y-3 text-sm">
+          <div><label class="text-xs text-gray-500 font-medium">Patient Health ID</label><input id="rxPatientId" class="w-full border rounded-xl p-3 mt-1" placeholder="IHMS-XXXXXX" /></div>
+          <div><label class="text-xs text-gray-500 font-medium">Patient Name</label><input id="rxPatientName" class="w-full border rounded-xl p-3 mt-1" placeholder="Auto-filled on search" /></div>
+          <div><label class="text-xs text-gray-500 font-medium">Date</label><input id="rxDate" type="date" class="w-full border rounded-xl p-3 mt-1" /></div>
+          <div><label class="text-xs text-gray-500 font-medium">Diagnosis</label><input id="rxDiagnosis" class="w-full border rounded-xl p-3 mt-1" placeholder="e.g. Acute bronchitis" /></div>
+        </div>
+        <div class="space-y-3 text-sm">
+          <div>
+            <label class="text-xs text-gray-500 font-medium">Medications</label>
+            <textarea id="rxMeds" rows="6" class="w-full border rounded-xl p-3 mt-1 font-mono text-xs" placeholder="Paracetamol | 500mg | 1-1-1 | 3 days&#10;Amoxicillin | 500mg | 1-0-1 | 5 days"></textarea>
+            <p class="text-[10px] text-gray-400 mt-1">Format: name | dosage | frequency | duration (one per line)</p>
+          </div>
+          <div><label class="text-xs text-gray-500 font-medium">Doctor's Notes</label><textarea id="rxNotes" rows="3" class="w-full border rounded-xl p-3 mt-1" placeholder="Rest, fluids, follow-up..."></textarea></div>
+        </div>
       </div>
-      <div style="text-align: center;">
-        <div style="width: 120px; border-top: 1px solid #333; padding-top: 4px; font-size: 10px; color: #666;">Signature</div>
+      <div class="flex flex-col sm:flex-row gap-3 mt-5">
+        <button id="rxSaveBtn" class="flex-1 bg-[#006a4e] hover:bg-[#005a42] text-white py-3 rounded-xl font-medium">💾 Save Prescription</button>
+        <button id="rxPrintBtn" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-medium">🖨️ Print / Preview</button>
+        <button id="rxClearBtn" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 rounded-xl font-medium">🔄 Clear Form</button>
+      </div>
+      <p id="rxStatus" class="text-xs text-green-700 mt-2 text-center"></p>
+    </div>
+
+    <!-- PRINT AREA -->
+    <div id="printArea" class="hidden mt-6 bg-white rounded-2xl shadow-sm border border-gray-100 p-6" style="font-family: 'Times New Roman', serif;">
+      <div style="border-bottom: 3px double #006a4e; padding-bottom: 12px; margin-bottom: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: start;">
+          <div>
+            <h1 style="font-size: 24px; font-weight: bold; color: #006a4e; margin: 0;">IHMS Health Center</h1>
+            <p style="font-size: 11px; color: #666; margin: 4px 0 0 0;">Nilphamari Medical College · Integrated Health-care Management System</p>
+            <p style="font-size: 11px; color: #666; margin: 2px 0 0 0;">📍 Nilphamari, Bangladesh · ☎ +880-0000-000000</p>
+          </div>
+          <div style="text-align: right;">
+            <p style="font-size: 11px; color: #666; margin: 0;">Date:</p>
+            <p id="printDate" style="font-size: 13px; font-weight: bold; margin: 2px 0 0 0;">—</p>
+          </div>
+        </div>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+        <div><p style="font-size: 10px; color: #888; margin: 0;">PATIENT NAME</p><p id="printPatientName" style="font-size: 14px; font-weight: bold; margin: 2px 0;">—</p></div>
+        <div><p style="font-size: 10px; color: #888; margin: 0;">HEALTH ID</p><p id="printPatientId" style="font-size: 14px; font-weight: bold; margin: 2px 0; font-family: monospace;">—</p></div>
+      </div>
+      <div style="margin-bottom: 16px;">
+        <p style="font-size: 10px; color: #888; margin: 0;">DIAGNOSIS</p>
+        <p id="printDiagnosis" style="font-size: 13px; margin: 4px 0; padding: 8px; background: #f0fdf4; border-left: 3px solid #006a4e;">—</p>
+      </div>
+      <div style="margin-bottom: 16px;">
+        <p style="font-size: 11px; font-weight: bold; color: #006a4e; border-bottom: 1px solid #ccc; padding-bottom: 4px; margin-bottom: 8px;">℞ PRESCRIPTION</p>
+        <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
+          <thead><tr style="background: #f0fdf4;"><th style="text-align: left; padding: 6px; border: 1px solid #ddd;">#</th><th style="text-align: left; padding: 6px; border: 1px solid #ddd;">Medicine</th><th style="text-align: left; padding: 6px; border: 1px solid #ddd;">Dosage</th><th style="text-align: left; padding: 6px; border: 1px solid #ddd;">Frequency</th><th style="text-align: left; padding: 6px; border: 1px solid #ddd;">Duration</th></tr></thead>
+          <tbody id="printMedTable"></tbody>
+        </table>
+      </div>
+      <div style="margin-bottom: 16px;"><p style="font-size: 10px; color: #888; margin: 0;">DOCTOR'S NOTES</p><p id="printNotes" style="font-size: 12px; margin: 4px 0; font-style: italic;">—</p></div>
+      <div style="display: flex; justify-content: space-between; align-items: end; margin-top: 40px; padding-top: 12px; border-top: 1px solid #ccc;">
+        <div><p style="font-size: 10px; color: #888; margin: 0;">Prescribed by</p><p id="printDoctorName" style="font-size: 14px; font-weight: bold; margin: 4px 0 0 0; color: #006a4e;">—</p><p id="printDoctorBmdc" style="font-size: 10px; color: #666; margin: 2px 0 0 0;">—</p></div>
+        <div style="text-align: center;"><div style="width: 120px; border-top: 1px solid #333; padding-top: 4px; font-size: 10px; color: #666;">Signature</div></div>
       </div>
     </div>
+  </section>
 
-    <p style="text-align: center; font-size: 9px; color: #999; margin-top: 20px;">This is a computer-generated prescription from IHMS. · Verify at: ihms-bd.web.app</p>
-  </div>
-</section>
-
-<!-- EMERGENCY TAB -->
-<section id="tab-emergency" class="tab-panel hidden">
-  <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-    <div class="flex justify-between items-center mb-4">
-      <h2 class="text-lg md:text-xl font-bold text-gray-800">🚨 Emergency Alerts</h2>
-      <button id="refreshEmergencyBtn" class="text-xs bg-gray-100 px-3 py-1 rounded-lg">🔄 Refresh</button>
-    </div>
-    <div id="emergencyList" class="space-y-3"><p class="text-sm text-gray-400">No active emergency alerts</p></div>
-  </div>
-</section>
-
-<!-- REFERRALS TAB -->
-<section id="tab-referrals" class="tab-panel hidden">
-  <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-    <h2 class="text-lg md:text-xl font-bold text-gray-800 mb-4">🔀 Refer Patient</h2>
-    <div class="grid md:grid-cols-2 gap-4 text-sm">
-      <div><label class="text-xs text-gray-500 font-medium">Patient Health ID</label><input id="refPatientId" class="w-full border rounded-xl p-3 mt-1" placeholder="IHMS-XXXXXX" /></div>
-      <div><label class="text-xs text-gray-500 font-medium">Refer To Department</label>
-        <select id="refDept" class="w-full border rounded-xl p-3 mt-1">
-          <option>Cardiology</option><option>Neurology</option><option>Orthopedics</option>
-          <option>Gastroenterology</option><option>Pediatrics</option><option>General Surgery</option>
-        </select>
+  <!-- ========== TAB 4: EMERGENCY ========== -->
+  <section id="tab-emergency" class="tab-panel hidden">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-lg md:text-xl font-bold text-gray-800">🚨 Emergency Alerts</h2>
+        <button id="refreshEmergencyBtn" class="text-xs bg-gray-100 px-3 py-1 rounded-lg">🔄 Refresh</button>
       </div>
-      <div class="md:col-span-2"><label class="text-xs text-gray-500 font-medium">Reason / Notes</label><textarea id="refNotes" rows="3" class="w-full border rounded-xl p-3 mt-1" placeholder="Reason for referral..."></textarea></div>
+      <div id="emergencyList" class="space-y-3"><p class="text-sm text-gray-400">No active emergency alerts</p></div>
     </div>
-    <button id="refSaveBtn" class="mt-5 w-full bg-[#006a4e] hover:bg-[#005a42] text-white py-3 rounded-xl font-medium">🔀 Create Referral</button>
-    <p id="refStatus" class="text-xs text-green-700 mt-2 text-center"></p>
-  </div>
-</section>
+  </section>
 
-<!-- SCHEDULE TAB -->
-<section id="tab-schedule" class="tab-panel hidden">
-  <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-    <h2 class="text-lg md:text-xl font-bold text-gray-800 mb-4">📅 My Appointments Today</h2>
-    <div id="apptList" class="space-y-3"><p class="text-sm text-gray-400">Loading...</p></div>
-  </div>
-</section>
+  <!-- ========== TAB 5: REFERRALS ========== -->
+  <section id="tab-referrals" class="tab-panel hidden">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+      <h2 class="text-lg md:text-xl font-bold text-gray-800 mb-4">🔀 Refer Patient</h2>
+      <div class="grid md:grid-cols-2 gap-4 text-sm">
+        <div><label class="text-xs text-gray-500 font-medium">Patient Health ID</label><input id="refPatientId" class="w-full border rounded-xl p-3 mt-1" placeholder="IHMS-XXXXXX" /></div>
+        <div><label class="text-xs text-gray-500 font-medium">Refer To Department</label>
+          <select id="refDept" class="w-full border rounded-xl p-3 mt-1">
+            <option>Cardiology</option><option>Neurology</option><option>Orthopedics</option><option>Gastroenterology</option><option>Pediatrics</option><option>General Surgery</option>
+          </select>
+        </div>
+        <div class="md:col-span-2"><label class="text-xs text-gray-500 font-medium">Reason / Notes</label><textarea id="refNotes" rows="3" class="w-full border rounded-xl p-3 mt-1" placeholder="Reason for referral..."></textarea></div>
+      </div>
+      <button id="refSaveBtn" class="mt-5 w-full bg-[#006a4e] hover:bg-[#005a42] text-white py-3 rounded-xl font-medium">🔀 Create Referral</button>
+      <p id="refStatus" class="text-xs text-green-700 mt-2 text-center"></p>
+    </div>
+  </section>
+
+  <!-- ========== TAB 6: SCHEDULE ========== -->
+  <section id="tab-schedule" class="tab-panel hidden">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+      <h2 class="text-lg md:text-xl font-bold text-gray-800 mb-4">📅 My Appointments Today</h2>
+      <div id="apptList" class="space-y-3"><p class="text-sm text-gray-400">Loading...</p></div>
+    </div>
+  </section>
 
 </main>
 
