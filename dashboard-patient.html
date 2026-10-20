@@ -22,7 +22,6 @@
       </div>
     </div>
     <div class="flex items-center gap-2">
-      <!-- SOS বাটন (লুকানো থাকবে, অ্যাডমিট হলে দেখাবে) -->
       <button id="emergencyBtn" class="hidden emergency-pulse text-xs md:text-sm bg-red-500 hover:bg-red-600 text-white px-3 md:px-4 py-2 rounded-lg font-medium">🚨 SOS</button>
       <button id="logoutBtn" class="text-xs md:text-sm px-3 md:px-4 py-2 rounded-lg border border-gray-200 hover:bg-gray-50">Logout</button>
     </div>
@@ -43,68 +42,102 @@
 
 <main class="max-w-7xl mx-auto p-3 md:p-6">
 
-<!-- 1. HOME TAB -->
-<section id="tab-home" class="tab-panel">
-  <div class="grid lg:grid-cols-3 gap-4 md:gap-6">
-    <div class="lg:col-span-1 bg-white rounded-2xl shadow-sm border border-gray-100 p-5 medical-gradient">
-      <h2 class="font-semibold text-gray-800 mb-4">Digital Health Pass</h2>
-      <div class="flex items-center gap-4">
-        <canvas id="qrCanvas" class="rounded-xl"></canvas>
+  <!-- HOME TAB -->
+  <section id="tab-home" class="tab-panel">
+    <div class="grid lg:grid-cols-3 gap-4 md:gap-6">
+      
+      <!-- Health ID Card -->
+      <div class="lg:col-span-1 bg-white rounded-2xl shadow-sm border border-gray-100 p-5 medical-gradient">
+        <h2 class="font-semibold text-gray-800 mb-4">Digital Health Pass</h2>
+        <div class="flex items-center gap-4">
+          <canvas id="qrCanvas" class="rounded-xl"></canvas>
+          <div>
+            <p class="text-[10px] text-gray-400">HEALTH ID</p>
+            <p id="healthIdText" class="font-mono font-bold text-[#006a4e] text-sm">—</p>
+            <p class="text-xs mt-2">Blood: <b id="bloodText">—</b></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Admission Info -->
+      <div id="admissionCard" class="hidden lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 p-5 border-l-4 border-l-blue-500">
+        <h2 class="font-semibold text-gray-800 mb-2">🏥 Hospital Admission</h2>
+        <div class="grid grid-cols-2 gap-4 text-sm">
+          <div><p class="text-xs text-gray-500">Department</p><p id="admDept" class="font-medium">—</p></div>
+          <div><p class="text-xs text-gray-500">Room / Bed</p><p id="admRoom" class="font-medium">—</p></div>
+        </div>
+        <div class="mt-4">
+          <h3 class="font-semibold text-gray-700 text-sm mb-2">💉 Active Treatments</h3>
+          <div id="treatmentList" class="space-y-2 text-xs">
+            <p class="text-gray-400">No treatments logged.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- AI SCANNER TAB -->
+  <section id="tab-scanner" class="tab-panel hidden">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+      <h2 class="text-lg md:text-xl font-bold text-gray-800 mb-4">🤖 AI Prescription Scanner</h2>
+      <div class="grid md:grid-cols-2 gap-5">
         <div>
-          <p class="text-[10px] text-gray-400">HEALTH ID</p>
-          <p id="healthIdText" class="font-mono font-bold text-[#006a4e] text-sm">—</p>
-          <p class="text-xs mt-2">Blood: <b id="bloodText">—</b></p>
+          <div id="dropZone" class="border-2 border-dashed border-[#006a4e]/40 bg-green-50/40 rounded-2xl p-6 text-center cursor-pointer hover:bg-green-50 transition">
+            <svg class="w-12 h-12 mx-auto text-[#006a4e]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            <p class="mt-3 text-sm text-gray-600 font-medium">Tap or drop prescription image</p>
+            <input type="file" id="fileInput" accept="image/*" class="hidden" />
+          </div>
+          <div id="previewBox" class="hidden mt-4"><img id="previewImg" class="max-h-48 rounded-xl border shadow-sm mx-auto" /></div>
+          <button id="scanBtn" class="mt-4 w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-xl font-medium shadow-lg disabled:opacity-50">⚡ Extract with AI</button>
+          <p id="scanStatus" class="text-xs text-gray-500 mt-2 text-center"></p>
+        </div>
+        <div>
+          <h3 class="font-semibold text-gray-700 mb-3">📄 Extracted Data (editable)</h3>
+          <div class="bg-slate-50 p-4 rounded-xl border space-y-3 text-sm max-h-[520px] overflow-y-auto">
+            <div><label class="text-xs text-gray-500">Date</label><input id="aiDate" type="date" class="w-full border rounded-lg p-2 mt-1" /></div>
+            <div><label class="text-xs text-gray-500">Doctor Name</label><input id="aiDoctor" class="w-full border rounded-lg p-2 mt-1" /></div>
+            <div><label class="text-xs text-gray-500">Diagnosis</label><input id="aiDiagnosis" class="w-full border rounded-lg p-2 mt-1" /></div>
+            <div><label class="text-xs text-gray-500">Medications</label><textarea id="aiMeds" rows="3" class="w-full border rounded-lg p-2 mt-1 font-mono text-xs"></textarea></div>
+            <div><label class="text-xs text-gray-500">Doctor's Notes</label><textarea id="aiNotes" rows="2" class="w-full border rounded-lg p-2 mt-1"></textarea></div>
+          </div>
+          <button id="saveBtn" class="mt-4 w-full bg-[#006a4e] hover:bg-[#005a42] text-white py-3 rounded-xl font-medium shadow-lg disabled:opacity-50">💾 Save to Health Card</button>
+          <p id="saveStatus" class="text-xs text-green-700 mt-2 text-center"></p>
         </div>
       </div>
     </div>
+  </section>
 
-    <!-- Admission Info -->
-    <div id="admissionCard" class="hidden lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 p-5 border-l-4 border-l-blue-500">
-      <h2 class="font-semibold text-gray-800 mb-2">🏥 Hospital Admission</h2>
-      <div class="grid grid-cols-2 gap-4 text-sm">
-        <div><p class="text-xs text-gray-500">Department</p><p id="admDept" class="font-medium">—</p></div>
-        <div><p class="text-xs text-gray-500">Room / Bed</p><p id="admRoom" class="font-medium">—</p></div>
-      </div>
-      <div class="mt-4">
-        <h3 class="font-semibold text-gray-700 text-sm mb-2">💉 Active Treatments</h3>
-        <div id="treatmentList" class="space-y-2 text-xs">
-          <p class="text-gray-400">No treatments logged.</p>
-        </div>
+  <!-- FIND DOCTOR TAB -->
+  <section id="tab-doctors" class="tab-panel hidden">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+      <h2 class="text-lg font-bold text-gray-800 mb-4">🩺 Available Doctors</h2>
+      <div id="doctorList" class="grid md:grid-cols-2 gap-3">
+        <p class="text-sm text-gray-400">Loading...</p>
       </div>
     </div>
-  </div>
-</section>
+  </section>
 
-<!-- 2. FIND DOCTOR TAB -->
-<section id="tab-doctors" class="tab-panel hidden">
-  <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-    <h2 class="text-lg font-bold text-gray-800 mb-4">🩺 Available Doctors</h2>
-    <div id="doctorList" class="grid md:grid-cols-2 gap-3">
-      <p class="text-sm text-gray-400">Loading...</p>
+  <!-- CHAT TAB -->
+  <section id="tab-chat" class="tab-panel hidden">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 max-w-2xl mx-auto">
+      <h2 class="text-lg font-bold text-gray-800 mb-4">💬 Chat with Doctor</h2>
+      <div id="chatMessages" class="h-64 overflow-y-auto bg-slate-50 rounded-xl p-3 mb-3 space-y-2 text-sm border">
+        <p class="text-gray-400 text-center">Select a doctor from Find Doctor tab to start chatting.</p>
+      </div>
+      <div class="flex gap-2">
+        <input id="chatInput" type="text" class="flex-1 border rounded-xl p-3 text-sm" placeholder="Type a message..." disabled>
+        <button id="chatSendBtn" class="bg-[#006a4e] text-white px-5 rounded-xl font-medium disabled:opacity-50" disabled>Send</button>
+      </div>
     </div>
-  </div>
-</section>
+  </section>
 
-<!-- 3. CHAT TAB -->
-<section id="tab-chat" class="tab-panel hidden">
-  <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 max-w-2xl mx-auto">
-    <h2 class="text-lg font-bold text-gray-800 mb-4">💬 Chat with Doctor</h2>
-    <div id="chatMessages" class="h-64 overflow-y-auto bg-slate-50 rounded-xl p-3 mb-3 space-y-2 text-sm border">
-      <p class="text-gray-400 text-center">Select a doctor from Find Doctor tab to start chatting.</p>
-    </div>
-    <div class="flex gap-2">
-      <input id="chatInput" type="text" class="flex-1 border rounded-xl p-3 text-sm" placeholder="Type a message..." disabled>
-      <button id="chatSendBtn" class="bg-[#006a4e] text-white px-5 rounded-xl font-medium disabled:opacity-50" disabled>Send</button>
-    </div>
-  </div>
-</section>
-
-<!-- 4. HISTORY & MEDS TAB (আগের মতোই) -->
-<section id="tab-history" class="tab-panel hidden"><div class="bg-white p-5 rounded-2xl shadow-sm border"><h2 class="text-lg font-bold mb-4">📋 History</h2><div id="fullHistoryList"></div></div></section>
-<section id="tab-meds" class="tab-panel hidden"><div class="bg-white p-5 rounded-2xl shadow-sm border"><h2 class="text-lg font-bold mb-4">💊 Meds</h2><div id="medsList"></div></div></section>
+  <!-- HISTORY & MEDS TAB -->
+  <section id="tab-history" class="tab-panel hidden"><div class="bg-white p-5 rounded-2xl shadow-sm border"><h2 class="text-lg font-bold mb-4">📋 History</h2><div id="fullHistoryList"></div></div></section>
+  <section id="tab-meds" class="tab-panel hidden"><div class="bg-white p-5 rounded-2xl shadow-sm border"><h2 class="text-lg font-bold mb-4">💊 Meds</h2><div id="medsList"></div></div></section>
 
 </main>
 
 <script type="module" src="js/patient.js"></script>
+<script type="module" src="js/ai-scanner.js"></script>
 </body>
 </html>
