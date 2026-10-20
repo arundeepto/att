@@ -36,7 +36,7 @@ onAuthStateChanged(auth, async (user) => {
 
 // ===== RENDER UI =====
 function renderUI(data) {
-  // 🌟 ১. QR কোড জেনারেট (নিজস্ব লাইব্রেরি দিয়ে, লোড হওয়া পর্যন্ত অপেক্ষা করবে)
+  // ১. QR কোড জেনারেট (নিজস্ব লাইব্রেরি দিয়ে)
   const qrContainer = document.getElementById("qrcode");
   if (qrContainer && data.healthId) {
     qrContainer.innerHTML = ""; // ক্লিয়ার করা
@@ -45,14 +45,14 @@ function renderUI(data) {
       if (typeof QRCode !== 'undefined') {
         new QRCode(qrContainer, {
           text: data.healthId,
-          width: 90,
-          height: 90,
-          colorDark: "#006a4e",
+          width: 85,
+          height: 85,
+          colorDark: "#0d4d8b", // হালকা নীল থিমের সাথে ম্যাচ করা
           colorLight: "#ffffff",
           correctLevel: QRCode.CorrectLevel.H
         });
       } else {
-        setTimeout(generateQR, 300); // লাইব্রেরি না এলে আবার চেষ্টা করবে
+        setTimeout(generateQR, 300);
       }
     };
     generateQR();
@@ -96,7 +96,7 @@ function renderUI(data) {
       <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 mb-2">
         <p class="font-semibold text-sm">${r.date} · ${r.doctor || "—"}</p>
         <p class="text-xs text-gray-600 mt-1">Dx: ${r.diagnosis || "—"}</p>
-        <p class="text-xs text-[#006a4e] mt-1 whitespace-pre-line">${r.medications || ""}</p>
+        <p class="text-xs text-[#0d4d8b] mt-1 whitespace-pre-line">${r.medications || ""}</p>
       </div>
     `).join("");
   }
@@ -169,7 +169,7 @@ async function loadDoctors() {
         <div class="border border-gray-200 rounded-xl p-4 flex justify-between items-center">
           <div>
             <p class="font-bold text-gray-800">${d.name}</p>
-            <p class="text-xs text-[#006a4e] font-medium mt-0.5">🏥 ${d.department || "General"}</p>
+            <p class="text-xs text-[#0d4d8b] font-medium mt-0.5">🏥 ${d.department || "General"}</p>
           </div>
           <button class="chatBtn bg-blue-50 text-blue-600 px-3 py-2 rounded-lg text-xs font-medium" data-id="${docSnap.id}" data-name="${d.name}">💬 Chat</button>
         </div>
@@ -201,7 +201,7 @@ function startChat(doctorId, doctorName) {
       const msgs = docSnap.data().messages || [];
       box.innerHTML = `<p class="text-center text-xs text-gray-400 mb-2">Chat with ${doctorName}</p>` + msgs.map(m => `
         <div class="flex ${m.senderId === currentUser.uid ? 'justify-end' : 'justify-start'}">
-          <div class="max-w-[75%] px-3 py-2 rounded-xl text-sm ${m.senderId === currentUser.uid ? 'bg-[#006a4e] text-white' : 'bg-white border text-gray-800'}">
+          <div class="max-w-[75%] px-3 py-2 rounded-xl text-sm ${m.senderId === currentUser.uid ? 'bg-[#0d4d8b] text-white' : 'bg-white border text-gray-800'}">
             ${m.text}
           </div>
         </div>
