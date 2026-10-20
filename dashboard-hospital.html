@@ -30,10 +30,10 @@
 <!-- TABS -->
 <div class="bg-white border-b border-gray-200 sticky top-16 z-30">
   <div class="max-w-7xl mx-auto px-2 md:px-4 flex gap-1 overflow-x-auto no-scrollbar">
-    <button data-tab="beds" class="tab-btn active">🛏️ Bed Management</button>
-    <button data-tab="treatments" class="tab-btn">💉 Treatments</button>
+    <button data-tab="beds" class="tab-btn active">🛏️ Admit Patient</button>
+    <button data-tab="admitted" class="tab-btn">📋 Admitted List</button>
     <button data-tab="nursecalls" class="tab-btn">🚨 Nurse Calls</button>
-    <button data-tab="referrals" class="tab-btn">🔀 Referral Inbox</button>
+    <button data-tab="treatments" class="tab-btn">💉 Treatments</button>
     <button data-tab="billing" class="tab-btn">💳 Billing</button>
   </div>
 </div>
@@ -64,7 +64,7 @@
     </div>
   </div>
 
-  <!-- ========== TAB 1: BEDS ========== -->
+  <!-- ========== TAB 1: ADMIT PATIENT ========== -->
   <section id="tab-beds" class="tab-panel">
     <div class="grid lg:grid-cols-3 gap-5">
       <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
@@ -82,17 +82,25 @@
         <h2 class="font-semibold text-gray-800 mb-4">➕ Admit / Update Patient</h2>
         <div class="space-y-3 text-sm">
           <input id="bedPatientId" class="w-full border rounded-xl p-3" placeholder="Patient Health ID" />
-          <select id="bedNumber" class="w-full border rounded-xl p-3"></select>
+          
+          <!-- 🌟 ডিপার্টমেন্ট সিলেক্ট -->
+          <select id="bedDept" class="w-full border rounded-xl p-3">
+            <option value="Cardiology">Cardiology</option>
+            <option value="Neurology">Neurology</option>
+            <option value="Medicine">Medicine</option>
+            <option value="Orthopedics">Orthopedics</option>
+          </select>
+
+          <!-- 🌟 বেড / কেবিন নম্বর -->
+          <input id="bedNumber" class="w-full border rounded-xl p-3" placeholder="Bed / Cabin No (e.g. C-101)" />
+          
           <select id="bedStatus" class="w-full border rounded-xl p-3">
             <option value="occupied">Occupied</option>
             <option value="observation">Observation</option>
             <option value="critical">Critical</option>
           </select>
           <button id="assignBedBtn" class="w-full bg-[#006a4e] hover:bg-[#005a42] text-white py-3 rounded-xl font-medium">
-            Assign Bed
-          </button>
-          <button id="dischargeBtn" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 rounded-xl font-medium">
-            Discharge
+            Assign Bed & Admit
           </button>
           <p id="bedMsg" class="text-xs text-green-700"></p>
         </div>
@@ -100,21 +108,13 @@
     </div>
   </section>
 
-  <!-- ========== TAB 2: TREATMENTS ========== -->
-  <section id="tab-treatments" class="tab-panel hidden">
+  <!-- ========== TAB 2: ADMITTED LIST ========== -->
+  <section id="tab-admitted" class="tab-panel hidden">
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-      <h2 class="text-lg md:text-xl font-bold text-gray-800 mb-4">💉 Add Treatment Record</h2>
-      <div class="grid md:grid-cols-2 gap-4 text-sm">
-        <input id="trPatientId" class="border rounded-xl p-3" placeholder="Patient Health ID" />
-        <input id="trType" class="border rounded-xl p-3" placeholder="Treatment Type (e.g. X-Ray, Surgery)" />
-        <input id="trDept" class="border rounded-xl p-3" placeholder="Department" />
-        <input id="trCost" type="number" class="border rounded-xl p-3" placeholder="Cost (BDT)" />
-        <textarea id="trNotes" rows="3" class="border rounded-xl p-3 md:col-span-2" placeholder="Treatment details..."></textarea>
+      <h2 class="text-lg font-bold text-gray-800 mb-4">📋 Currently Admitted Patients</h2>
+      <div id="admittedList" class="space-y-3">
+        <p class="text-sm text-gray-400">Loading...</p>
       </div>
-      <button id="trSaveBtn" class="mt-4 w-full bg-[#006a4e] hover:bg-[#005a42] text-white py-3 rounded-xl font-medium">
-        💾 Save Treatment
-      </button>
-      <p id="trStatus" class="text-xs text-green-700 mt-2 text-center"></p>
     </div>
   </section>
 
@@ -122,7 +122,7 @@
   <section id="tab-nursecalls" class="tab-panel hidden">
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
       <div class="flex justify-between items-center mb-4">
-        <h2 class="text-lg md:text-xl font-bold text-gray-800">🚨 Live Nurse Calls</h2>
+        <h2 class="text-lg font-bold text-gray-800">🚨 Live Nurse Calls</h2>
         <button id="refreshCallsBtn" class="text-xs bg-gray-100 px-3 py-1 rounded-lg">🔄 Refresh</button>
       </div>
       <div id="callsList" class="space-y-3">
@@ -131,28 +131,32 @@
     </div>
   </section>
 
-  <!-- ========== TAB 4: REFERRALS ========== -->
-  <section id="tab-referrals" class="tab-panel hidden">
+  <!-- ========== TAB 4: TREATMENTS ========== -->
+  <section id="tab-treatments" class="tab-panel hidden">
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-      <h2 class="text-lg md:text-xl font-bold text-gray-800 mb-4">🔀 Incoming Referrals</h2>
-      <div id="refInbox" class="space-y-3">
-        <p class="text-sm text-gray-400">Loading...</p>
+      <h2 class="text-lg font-bold text-gray-800 mb-4">💉 Add Treatment Record</h2>
+      <div class="grid md:grid-cols-2 gap-4 text-sm">
+        <input id="trPatientId" class="border rounded-xl p-3" placeholder="Patient Health ID" />
+        <input id="trType" class="border rounded-xl p-3" placeholder="Treatment Type (e.g. X-Ray, Surgery)" />
+        <input id="trDept" class="border rounded-xl p-3" placeholder="Department" />
+        <input id="trCost" type="number" class="border rounded-xl p-3" placeholder="Cost (BDT)" />
+        <textarea id="trNotes" rows="3" class="border rounded-xl p-3 md:col-span-2" placeholder="Treatment details..."></textarea>
       </div>
+      <button id="trSaveBtn" class="mt-4 w-full bg-[#006a4e] hover:bg-[#005a42] text-white py-3 rounded-xl font-medium">💾 Save Treatment</button>
+      <p id="trStatus" class="text-xs text-green-700 mt-2 text-center"></p>
     </div>
   </section>
 
   <!-- ========== TAB 5: BILLING ========== -->
   <section id="tab-billing" class="tab-panel hidden">
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-      <h2 class="text-lg md:text-xl font-bold text-gray-800 mb-4">💳 Cashless Billing</h2>
+      <h2 class="text-lg font-bold text-gray-800 mb-4">💳 Cashless Billing</h2>
       <div class="grid md:grid-cols-2 gap-4 text-sm">
         <input id="billPatientId" class="border rounded-xl p-3" placeholder="Patient Health ID" />
         <input id="billAmount" type="number" class="border rounded-xl p-3" placeholder="Amount (৳)" />
         <input id="billPurpose" class="border rounded-xl p-3 md:col-span-2" placeholder="Purpose (e.g. Ticket, Investigation)" />
       </div>
-      <button id="billBtn" class="mt-4 w-full bg-[#006a4e] hover:bg-[#005a42] text-white py-3 rounded-xl font-medium">
-        💳 Process Payment
-      </button>
+      <button id="billBtn" class="mt-4 w-full bg-[#006a4e] hover:bg-[#005a42] text-white py-3 rounded-xl font-medium">💳 Process Payment</button>
       <p id="billStatus" class="text-xs text-green-700 mt-2 text-center"></p>
     </div>
   </section>
